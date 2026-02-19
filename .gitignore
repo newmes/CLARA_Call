@@ -1,0 +1,11 @@
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+DerivedData/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# HuggingFace download cache
+VitalsApp/Resources/tokenizer/.cache/
