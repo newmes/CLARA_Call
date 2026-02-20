@@ -41,21 +41,17 @@ final class AudioTranscriber: ObservableObject {
     func loadModel() async {
         guard state == .idle else { return }
 
-        if #available(iOS 18.0, *) {
-            state = .loadingModel
-            do {
-                melExtractor = MelSpectrogramExtractor()
-                let model = try await MedASRInference.load()
-                inference = model
-                decoder = try CTCDecoder.fromBundle(directory: "medasr_tokenizer")
-                state = .ready
-                print("[AudioTranscriber] model loaded")
-            } catch {
-                print("[AudioTranscriber] failed to load model: \(error)")
-                state = .idle
-            }
-        } else {
-            print("[AudioTranscriber] requires iOS 18+, skipping")
+        state = .loadingModel
+        do {
+            melExtractor = MelSpectrogramExtractor()
+            let model = try await MedASRInference.load()
+            inference = model
+            decoder = try CTCDecoder.fromBundle(directory: "medasr_tokenizer")
+            state = .ready
+            print("[AudioTranscriber] model loaded")
+        } catch {
+            print("[AudioTranscriber] failed to load model: \(error)")
+            state = .idle
         }
     }
 
@@ -64,11 +60,9 @@ final class AudioTranscriber: ObservableObject {
     func startTranscribing() {
         guard state == .ready else { return }
 
-        if #available(iOS 18.0, *) {
-            state = .transcribing
-            startAudioEngine()
-            startInferenceLoop()
-        }
+        state = .transcribing
+        startAudioEngine()
+        startInferenceLoop()
     }
 
     func stopTranscribing() {

@@ -179,16 +179,10 @@ struct LiveStreamView: View {
             if !message.isFromServer { Spacer() }
             HStack(spacing: 6) {
                 if message.isFromServer {
-                    if #available(iOS 18.0, *) {
-                        Image(systemName: "bolt.heart.fill")
-                            .symbolRenderingMode(.hierarchical)
-                            .symbolEffect(.bounce.down.byLayer, options: .repeat(.periodic(delay: 0.7)))
-                            .font(.caption)
-                    } else {
-                        Image(systemName: "bolt.heart.fill")
-                            .symbolRenderingMode(.hierarchical)
-                            .font(.caption)
-                    }
+                    Image(systemName: "bolt.heart.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.bounce.down.byLayer, options: .repeat(.periodic(delay: 0.7)))
+                        .font(.caption)
                 }
                 Text(message.text)
                     .font(.subheadline)
