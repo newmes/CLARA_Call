@@ -4,7 +4,7 @@ import SwiftUI
 struct VitalsApp: App {
     var body: some Scene {
         WindowGroup {
-            LiveStreamView()
+            HomeView()
         }
     }
 }

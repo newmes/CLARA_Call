@@ -32,7 +32,8 @@ struct VideoRendererView: UIViewRepresentable {
 }
 
 struct LiveStreamView: View {
-    @StateObject private var manager = WebRTCManager()
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var manager: WebRTCManager
 
     var body: some View {
         ZStack {
@@ -61,6 +62,9 @@ struct LiveStreamView: View {
                 }
             }
         }
+        .onAppear {
+            manager.startPreview()
+        }
         .onDisappear {
             manager.disconnect()
         }
@@ -75,7 +79,7 @@ struct LiveStreamView: View {
             }
             Spacer()
             if manager.isStreaming {
-                Button(action: { manager.disconnect() }) {
+                Button(action: { manager.disconnect(); dismiss() }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
                         .foregroundStyle(.white)
@@ -88,7 +92,7 @@ struct LiveStreamView: View {
 
     private var startButton: some View {
         Button {
-            Task { await manager.connect() }
+            Task { await manager.startStreaming() }
         } label: {
             Label("Start Streaming", systemImage: "video.fill")
                 .font(.headline)
@@ -164,17 +168,31 @@ struct LiveStreamView: View {
     private func chatBubble(_ message: ChatMessage) -> some View {
         HStack {
             if !message.isFromServer { Spacer() }
-            Text(message.text)
-                .font(.subheadline)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    message.isFromServer
-                        ? Color.white.opacity(0.2)
-                        : Color.blue.opacity(0.7)
-                )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            HStack(spacing: 6) {
+                if message.isFromServer {
+                    if #available(iOS 18.0, *) {
+                        Image(systemName: "bolt.heart.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .symbolEffect(.bounce.down.byLayer, options: .repeat(.periodic(delay: 0.7)))
+                            .font(.caption)
+                    } else {
+                        Image(systemName: "bolt.heart.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .font(.caption)
+                    }
+                }
+                Text(message.text)
+                    .font(.subheadline)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                message.isFromServer
+                    ? Color.white.opacity(0.2)
+                    : Color.blue.opacity(0.7)
+            )
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             if message.isFromServer { Spacer() }
         }
     }

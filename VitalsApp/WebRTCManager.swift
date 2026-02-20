@@ -4,6 +4,7 @@ import WebRTC
 @MainActor
 class WebRTCManager: ObservableObject {
     @Published var connectionState: RTCIceConnectionState = .new
+    @Published var isSignalingConnected = false
     @Published var messages: [ChatMessage] = []
     @Published var localVideoTrack: RTCVideoTrack?
     @Published var isStreaming = false
@@ -19,25 +20,60 @@ class WebRTCManager: ObservableObject {
     }()
 
     private var peerConnection: RTCPeerConnection?
+    private var videoSource: RTCVideoSource?
     private var videoCapturer: RTCCameraVideoCapturer?
     private var localAudioTrack: RTCAudioTrack?
     fileprivate var signalingClient = SignalingClient()
     private var pendingICECandidates: [RTCIceCandidate] = []
     private var hasRemoteDescription = false
+    private var signalingContinuation: CheckedContinuation<Void, Never>?
     private let serverURL: URL
 
     init(serverURL: URL = URL(string: "wss://imperceptible-makena-overabusively.ngrok-free.dev/ws")!) {
         self.serverURL = serverURL
     }
 
+    // MARK: - Preview
+
+    func startPreview() {
+        guard videoCapturer == nil else { return }
+        let source = Self.factory.videoSource()
+        videoSource = source
+        let capturer = RTCCameraVideoCapturer(delegate: source)
+        videoCapturer = capturer
+        let track = Self.factory.videoTrack(with: source, trackId: "video0")
+        localVideoTrack = track
+        startCameraCapture()
+    }
+
+    func stopPreview() {
+        videoCapturer?.stopCapture()
+        videoCapturer = nil
+        videoSource = nil
+        localVideoTrack = nil
+    }
+
     // MARK: - Connect
 
-    func connect() async {
+    func connectSignaling() {
+        setupSignaling()
+        signalingClient.connect(to: serverURL)
+    }
+
+    func startStreaming() async {
+        if videoCapturer == nil { startPreview() }
+
+        // Wait for signaling if not yet connected
+        if !isSignalingConnected {
+            await withCheckedContinuation { continuation in
+                signalingContinuation = continuation
+            }
+        }
+
         configureAudioSession()
         createPeerConnection()
         addMediaTracks()
-        setupSignaling()
-        signalingClient.connect(to: serverURL)
+        await createAndSendOffer()
         isStreaming = true
     }
 
@@ -89,16 +125,10 @@ class WebRTCManager: ObservableObject {
         pc.add(audioTrack, streamIds: ["stream0"])
         localAudioTrack = audioTrack
 
-        // Video
-        let videoSource = Self.factory.videoSource()
-        let capturer = RTCCameraVideoCapturer(delegate: videoSource)
-        videoCapturer = capturer
-
-        let videoTrack = Self.factory.videoTrack(with: videoSource, trackId: "video0")
-        pc.add(videoTrack, streamIds: ["stream0"])
-        localVideoTrack = videoTrack
-
-        startCameraCapture()
+        // Video (reuse track from preview)
+        if let videoTrack = localVideoTrack {
+            pc.add(videoTrack, streamIds: ["stream0"])
+        }
     }
 
     private func startCameraCapture() {
@@ -139,7 +169,9 @@ class WebRTCManager: ObservableObject {
     private func setupSignaling() {
         signalingClient.onConnect = { [weak self] in
             Task { @MainActor in
-                await self?.createAndSendOffer()
+                self?.isSignalingConnected = true
+                self?.signalingContinuation?.resume()
+                self?.signalingContinuation = nil
             }
         }
 
@@ -249,17 +281,16 @@ class WebRTCManager: ObservableObject {
     // MARK: - Disconnect
 
     func disconnect() {
-        videoCapturer?.stopCapture()
+        stopPreview()
 
-        localVideoTrack?.isEnabled = false
         localAudioTrack?.isEnabled = false
-        localVideoTrack = nil
         localAudioTrack = nil
 
         peerConnection?.close()
         peerConnection = nil
 
         signalingClient.disconnect()
+        isSignalingConnected = false
         hasRemoteDescription = false
         pendingICECandidates.removeAll()
         isStreaming = false
