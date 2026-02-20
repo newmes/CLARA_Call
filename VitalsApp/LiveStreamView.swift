@@ -128,25 +128,13 @@ struct LiveStreamView: View {
     }
 
     private var connectionColor: Color {
-        switch manager.connectionState {
-        case .connected, .completed: return .green
-        case .checking: return .yellow
-        case .disconnected, .failed, .closed: return .red
-        default: return .gray
-        }
+        if !manager.isStreaming { return .gray }
+        return manager.isSignalingConnected ? .green : .red
     }
 
     private var connectionLabel: String {
-        switch manager.connectionState {
-        case .new: return "New"
-        case .checking: return "Connecting..."
-        case .connected: return "Connected"
-        case .completed: return "Connected"
-        case .disconnected: return "Disconnected"
-        case .failed: return "Failed"
-        case .closed: return "Closed"
-        @unknown default: return "Unknown"
-        }
+        if !manager.isStreaming { return "Idle" }
+        return manager.isSignalingConnected ? "Connected" : "Disconnected"
     }
 
     // MARK: - Chat Overlay

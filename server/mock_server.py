@@ -9,7 +9,7 @@ import time
 
 import numpy as np
 from aiohttp import web
-from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
+from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack, RTCConfiguration, RTCIceServer
 from aiortc.sdp import candidate_from_sdp
 from aiortc.contrib.media import MediaRecorder
 from av import AudioFrame
@@ -67,7 +67,9 @@ async def websocket_handler(request):
 
     print("[Server] WebSocket client connected")
 
-    pc = RTCPeerConnection()
+    pc = RTCPeerConnection(
+        RTCConfiguration(iceServers=[RTCIceServer(urls=["stun:stun.l.google.com:19302"])])
+    )
     recorder = None
     transcription_task = None
     recordings_dir = os.path.join(os.path.dirname(__file__), "recordings")
