@@ -34,6 +34,7 @@ struct VideoRendererView: UIViewRepresentable {
 struct LiveStreamView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var manager: WebRTCManager
+    @ObservedObject var audioTranscriber: AudioTranscriber
 
     var body: some View {
         ZStack {
@@ -64,8 +65,13 @@ struct LiveStreamView: View {
         }
         .onAppear {
             manager.startPreview()
+            audioTranscriber.onTranscription = { [weak manager] text in
+                guard let manager else { return }
+                manager.messages.append(ChatMessage(text: text, isFromServer: false))
+            }
         }
         .onDisappear {
+            audioTranscriber.stopTranscribing()
             manager.disconnect()
         }
     }
@@ -92,7 +98,10 @@ struct LiveStreamView: View {
 
     private var startButton: some View {
         Button {
-            Task { await manager.startStreaming() }
+            Task {
+                await manager.startStreaming()
+                audioTranscriber.startTranscribing()
+            }
         } label: {
             Label("Start Streaming", systemImage: "video.fill")
                 .font(.headline)

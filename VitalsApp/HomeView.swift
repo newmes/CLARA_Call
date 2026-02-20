@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var manager = WebRTCManager()
+    @StateObject private var audioTranscriber = AudioTranscriber()
     @State private var showLiveStream = false
 
     var body: some View {
@@ -31,8 +32,11 @@ struct HomeView: View {
                 .padding(.bottom, 48)
             }
         }
+        .task {
+            await audioTranscriber.loadModel()
+        }
         .fullScreenCover(isPresented: $showLiveStream) {
-            LiveStreamView(manager: manager)
+            LiveStreamView(manager: manager, audioTranscriber: audioTranscriber)
         }
     }
 }

@@ -70,11 +70,11 @@ class WebRTCManager: ObservableObject {
             }
         }
 
+        isStreaming = true
         configureAudioSession()
         createPeerConnection()
         addMediaTracks()
         await createAndSendOffer()
-        isStreaming = true
     }
 
     // MARK: - Audio Session

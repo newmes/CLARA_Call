@@ -26,6 +26,10 @@ targets:
       - path: VitalsApp/Resources/tokenizer
         type: folder
         buildPhase: resources
+      - path: VitalsApp/Resources/MedASR.mlpackage
+      - path: VitalsApp/Resources/medasr_tokenizer
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: swift-transformers
         product: Transformers

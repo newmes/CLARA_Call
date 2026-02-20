@@ -1,6 +1,7 @@
 .DS_Store
 
 # Xcode
+*.xcodeproj/project.pbxproj
 xcuserdata/
 *.xcscmblueprint
 DerivedData/
