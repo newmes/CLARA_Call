@@ -25,6 +25,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos for classification</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Stream audio during live sessions</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

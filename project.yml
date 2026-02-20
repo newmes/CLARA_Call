@@ -9,6 +9,9 @@ packages:
   swift-transformers:
     url: https://github.com/huggingface/swift-transformers
     from: "0.1.12"
+  WebRTC:
+    url: https://github.com/stasel/WebRTC
+    from: "126.0.0"
 
 targets:
   VitalsApp:
@@ -26,11 +29,13 @@ targets:
     dependencies:
       - package: swift-transformers
         product: Transformers
+      - package: WebRTC
     info:
       path: VitalsApp/Info.plist
       properties:
         UILaunchScreen: {}
         NSCameraUsageDescription: "Take photos for classification"
+        NSMicrophoneUsageDescription: "Stream audio during live sessions"
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     settings:

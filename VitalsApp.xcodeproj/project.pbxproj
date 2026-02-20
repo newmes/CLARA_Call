@@ -9,22 +9,31 @@
 /* Begin PBXBuildFile section */
 		1321ECB45DAF7F61D7E8E28F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4144236FC954AA905FD01281 /* ContentView.swift */; };
 		2174BDD1F284A16628B144C0 /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = 670E16F5A4FFF548F823EEA0 /* Transformers */; };
+		2195C4C8D408B1CB7FDEBE85 /* LiveStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E3E45724456CA4B1BC1DF4 /* LiveStreamView.swift */; };
+		3DA5003D2D9F930FE0709AE3 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D95217E7BF8AAA3F9154D4 /* ChatMessage.swift */; };
 		6BBC708182B3548B60FFB8CD /* MedSigLIP_VisionEncoder.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 6C0738F64D1290B67D9A49C5 /* MedSigLIP_VisionEncoder.mlpackage */; };
+		7EF942550CC6A6DE4BCA85A0 /* WebRTCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE7FE8098F21F5FD76B049B /* WebRTCManager.swift */; };
 		8535AE5713FA92D20CBFB017 /* EmbeddingAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636C1B624B702891AA5FFFD /* EmbeddingAPIClient.swift */; };
 		893BC8F92A8B20F48EA21D45 /* ImagePreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0948B9F9CF258578D7A63D1 /* ImagePreprocessor.swift */; };
 		8B4C3667CF54758ADCD6D596 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7146CAD7FA9AAD97CD5350F /* App.swift */; };
 		9E7126CB78CD7D6854955147 /* MedSigLIP_TextEncoder.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = C94692730A84A26E29C01DBC /* MedSigLIP_TextEncoder.mlpackage */; };
+		CD1194FE4A573C50236394C8 /* SignalingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9560730C8E25DE956D1A521 /* SignalingClient.swift */; };
 		CE6431A2F2FEF9937C46425C /* MedSigLIPClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A630D0D84A2C5328B63BD9 /* MedSigLIPClassifier.swift */; };
 		E35E991C75844888EE4EAD02 /* tokenizer in Resources */ = {isa = PBXBuildFile; fileRef = E72604AD5B1E09C27BE9B8DF /* tokenizer */; };
+		F7FF5AD0D5F92C4602EA2F82 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 84FED3527FEAD448A899BB9D /* WebRTC */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		4144236FC954AA905FD01281 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		54722C75CF2FDCEEF41B8811 /* VitalsApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VitalsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C0738F64D1290B67D9A49C5 /* MedSigLIP_VisionEncoder.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = MedSigLIP_VisionEncoder.mlpackage; sourceTree = "<group>"; };
+		77D95217E7BF8AAA3F9154D4 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		91E3E45724456CA4B1BC1DF4 /* LiveStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStreamView.swift; sourceTree = "<group>"; };
+		B9560730C8E25DE956D1A521 /* SignalingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalingClient.swift; sourceTree = "<group>"; };
 		C5C098FCEF074EC7901E2DAC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C7146CAD7FA9AAD97CD5350F /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		C94692730A84A26E29C01DBC /* MedSigLIP_TextEncoder.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = MedSigLIP_TextEncoder.mlpackage; sourceTree = "<group>"; };
+		CAE7FE8098F21F5FD76B049B /* WebRTCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCManager.swift; sourceTree = "<group>"; };
 		D0948B9F9CF258578D7A63D1 /* ImagePreprocessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreprocessor.swift; sourceTree = "<group>"; };
 		D636C1B624B702891AA5FFFD /* EmbeddingAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddingAPIClient.swift; sourceTree = "<group>"; };
 		E72604AD5B1E09C27BE9B8DF /* tokenizer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tokenizer; path = VitalsApp/Resources/tokenizer; sourceTree = SOURCE_ROOT; };
@@ -37,6 +46,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2174BDD1F284A16628B144C0 /* Transformers in Frameworks */,
+				F7FF5AD0D5F92C4602EA2F82 /* WebRTC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,11 +67,15 @@
 			isa = PBXGroup;
 			children = (
 				C7146CAD7FA9AAD97CD5350F /* App.swift */,
+				77D95217E7BF8AAA3F9154D4 /* ChatMessage.swift */,
 				4144236FC954AA905FD01281 /* ContentView.swift */,
 				D636C1B624B702891AA5FFFD /* EmbeddingAPIClient.swift */,
 				D0948B9F9CF258578D7A63D1 /* ImagePreprocessor.swift */,
 				C5C098FCEF074EC7901E2DAC /* Info.plist */,
+				91E3E45724456CA4B1BC1DF4 /* LiveStreamView.swift */,
 				E9A630D0D84A2C5328B63BD9 /* MedSigLIPClassifier.swift */,
+				B9560730C8E25DE956D1A521 /* SignalingClient.swift */,
+				CAE7FE8098F21F5FD76B049B /* WebRTCManager.swift */,
 			);
 			path = VitalsApp;
 			sourceTree = "<group>";
@@ -102,6 +116,7 @@
 			name = VitalsApp;
 			packageProductDependencies = (
 				670E16F5A4FFF548F823EEA0 /* Transformers */,
+				84FED3527FEAD448A899BB9D /* WebRTC */,
 			);
 			productName = VitalsApp;
 			productReference = 54722C75CF2FDCEEF41B8811 /* VitalsApp.app */;
@@ -127,6 +142,7 @@
 			mainGroup = 92AC3F20DB89CED42EA31264;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				265E7DE7BEED2784D79FB18B /* XCRemoteSwiftPackageReference "WebRTC" */,
 				EC79D74A65C2B4058B08777D /* XCRemoteSwiftPackageReference "swift-transformers" */,
 			);
 			projectDirPath = "";
@@ -154,12 +170,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B4C3667CF54758ADCD6D596 /* App.swift in Sources */,
+				3DA5003D2D9F930FE0709AE3 /* ChatMessage.swift in Sources */,
 				1321ECB45DAF7F61D7E8E28F /* ContentView.swift in Sources */,
 				8535AE5713FA92D20CBFB017 /* EmbeddingAPIClient.swift in Sources */,
 				893BC8F92A8B20F48EA21D45 /* ImagePreprocessor.swift in Sources */,
+				2195C4C8D408B1CB7FDEBE85 /* LiveStreamView.swift in Sources */,
 				CE6431A2F2FEF9937C46425C /* MedSigLIPClassifier.swift in Sources */,
 				9E7126CB78CD7D6854955147 /* MedSigLIP_TextEncoder.mlpackage in Sources */,
 				6BBC708182B3548B60FFB8CD /* MedSigLIP_VisionEncoder.mlpackage in Sources */,
+				CD1194FE4A573C50236394C8 /* SignalingClient.swift in Sources */,
+				7EF942550CC6A6DE4BCA85A0 /* WebRTCManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +365,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		265E7DE7BEED2784D79FB18B /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 126.0.0;
+			};
+		};
 		EC79D74A65C2B4058B08777D /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/huggingface/swift-transformers";
@@ -360,6 +388,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = EC79D74A65C2B4058B08777D /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Transformers;
+		};
+		84FED3527FEAD448A899BB9D /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265E7DE7BEED2784D79FB18B /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

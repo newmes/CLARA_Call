@@ -1,3 +1,5 @@
+.DS_Store
+
 # Xcode
 xcuserdata/
 *.xcscmblueprint
@@ -9,3 +11,8 @@ DerivedData/
 
 # HuggingFace download cache
 VitalsApp/Resources/tokenizer/.cache/
+
+# Server
+server/venv/
+server/recordings/
+server/__pycache__/

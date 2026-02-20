@@ -1,0 +1,4 @@
+aiohttp
+aiortc==1.9.0
+numpy
+av==13.1.0
