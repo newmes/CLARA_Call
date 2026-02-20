@@ -62,33 +62,13 @@ class SignalingClient: NSObject {
 
     private var webSocket: URLSessionWebSocketTask?
     private var urlSession: URLSession?
-    private var pingTimer: Timer?
 
     func connect(to url: URL) {
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
         urlSession = session
-        var request = URLRequest(url: url)
-        request.addValue("1", forHTTPHeaderField: "ngrok-skip-browser-warning")
-        request.addValue("websocket", forHTTPHeaderField: "Upgrade")
-        let task = session.webSocketTask(with: request)
+        let task = session.webSocketTask(with: url)
         webSocket = task
         task.resume()
-    }
-
-    private func startPing() {
-        pingTimer?.invalidate()
-        pingTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
-            self?.webSocket?.sendPing { error in
-                if let error {
-                    print("[SignalingClient] ping error: \(error)")
-                }
-            }
-        }
-    }
-
-    private func stopPing() {
-        pingTimer?.invalidate()
-        pingTimer = nil
     }
 
     func send(_ message: SignalingMessage) {
@@ -102,7 +82,6 @@ class SignalingClient: NSObject {
     }
 
     func disconnect() {
-        stopPing()
         webSocket?.cancel(with: .normalClosure, reason: nil)
         webSocket = nil
         urlSession?.invalidateAndCancel()
@@ -116,19 +95,14 @@ class SignalingClient: NSObject {
                 let data: Data?
                 switch message {
                 case .string(let text):
-                    print("[SignalingClient] raw WS received: \(text)")
                     data = text.data(using: .utf8)
                 case .data(let d):
-                    print("[SignalingClient] raw WS received \(d.count) bytes")
                     data = d
                 @unknown default:
                     data = nil
                 }
                 if let data, let signalingMessage = SignalingMessage.from(jsonData: data) {
-                    print("[SignalingClient] parsed message: \(signalingMessage)")
                     self?.onMessage?(signalingMessage)
-                } else {
-                    print("[SignalingClient] failed to parse message")
                 }
                 self?.readMessage()
             case .failure(let error):
@@ -143,7 +117,6 @@ extension SignalingClient: URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didOpenWithProtocol protocol: String?) {
         print("[SignalingClient] connected")
-        DispatchQueue.main.async { self.startPing() }
         onConnect?()
         readMessage()
     }

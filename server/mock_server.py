@@ -9,7 +9,8 @@ import time
 
 import numpy as np
 from aiohttp import web
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStreamTrack
+from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
+from aiortc.sdp import candidate_from_sdp
 from aiortc.contrib.media import MediaRecorder
 from av import AudioFrame
 
@@ -61,7 +62,7 @@ class SyntheticAudioTrack(MediaStreamTrack):
 
 
 async def websocket_handler(request):
-    ws = web.WebSocketResponse(heartbeat=10.0)
+    ws = web.WebSocketResponse(heartbeat=10.0, compress=False)
     await ws.prepare(request)
 
     print("[Server] WebSocket client connected")
@@ -149,13 +150,14 @@ async def websocket_handler(request):
                 sdp_mid = data.get("sdpMid", "")
                 sdp_mline_index = data.get("sdpMLineIndex", 0)
                 if candidate_str:
-                    candidate = RTCIceCandidate(
-                        sdpMid=sdp_mid,
-                        sdpMLineIndex=sdp_mline_index,
-                        candidate=candidate_str,
-                    )
-                    await pc.addIceCandidate(candidate)
-                    print(f"[Server] Added ICE candidate")
+                    try:
+                        candidate = candidate_from_sdp(candidate_str)
+                        candidate.sdpMid = sdp_mid
+                        candidate.sdpMLineIndex = sdp_mline_index
+                        await pc.addIceCandidate(candidate)
+                        print(f"[Server] Added ICE candidate")
+                    except Exception as e:
+                        print(f"[Server] Ignoring ICE candidate: {e}")
 
         elif msg.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
             print(f"[Server] WebSocket close frame received: {msg.type}")

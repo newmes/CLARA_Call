@@ -197,14 +197,12 @@ class WebRTCManager: ObservableObject {
         case .candidate(let sdpMid, let sdpMLineIndex, let candidate):
             handleCandidate(sdpMid: sdpMid, sdpMLineIndex: sdpMLineIndex, candidate: candidate)
         case .transcription(let text, let timestamp):
-            print("[WebRTCManager] transcription received: \"\(text)\" at \(timestamp)")
             let chatMessage = ChatMessage(
                 text: text,
                 timestamp: Date(timeIntervalSince1970: timestamp),
                 isFromServer: true
             )
             messages.append(chatMessage)
-            print("[WebRTCManager] messages count: \(messages.count)")
         default:
             break
         }
