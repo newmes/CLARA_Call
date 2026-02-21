@@ -35,6 +35,9 @@ struct LiveStreamView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var manager: WebRTCManager
     @ObservedObject var audioTranscriber: AudioTranscriber
+    @ObservedObject var classifier: MedSigLIPClassifier
+    @State private var privacyModeEnabled = false
+    @State private var debugFrameEnabled = false
 
     var body: some View {
         ZStack {
@@ -68,6 +71,10 @@ struct LiveStreamView: View {
             audioTranscriber.onTranscription = { [weak manager] text in
                 guard let manager else { return }
                 manager.messages.append(ChatMessage(text: text, isFromServer: false))
+                if manager.isPrivacyMode {
+                    let timestamp = Date().timeIntervalSince1970
+                    manager.sendSignalingMessage(.transcription(text: text, timestamp: timestamp))
+                }
             }
         }
         .onDisappear {
@@ -97,18 +104,52 @@ struct LiveStreamView: View {
     }
 
     private var startButton: some View {
-        Button {
-            Task {
-                await manager.startStreaming()
-                audioTranscriber.startTranscribing()
+        VStack(spacing: 20) {
+            Toggle(isOn: $privacyModeEnabled) {
+                Label("Privacy Mode", systemImage: "lock.shield")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white)
             }
-        } label: {
-            Label("Start Streaming", systemImage: "video.fill")
+            .tint(.green)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: Capsule())
+            .frame(width: 240)
+
+            if privacyModeEnabled {
+                Toggle(isOn: $debugFrameEnabled) {
+                    Label("Debug Frames", systemImage: "ant")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                }
+                .tint(.orange)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: Capsule())
+                .frame(width: 240)
+            }
+
+            Button {
+                Task {
+                    if privacyModeEnabled {
+                        manager.debugFrameEnabled = debugFrameEnabled
+                        await manager.startPrivacyStreaming()
+                    } else {
+                        await manager.startStreaming()
+                    }
+                    audioTranscriber.startTranscribing()
+                }
+            } label: {
+                Label(
+                    privacyModeEnabled ? "Start Private" : "Start Streaming",
+                    systemImage: privacyModeEnabled ? "lock.shield.fill" : "video.fill"
+                )
                 .font(.headline)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
                 .background(.ultraThinMaterial, in: Capsule())
                 .foregroundStyle(.white)
+            }
         }
         .padding(.bottom, 60)
     }
@@ -134,6 +175,9 @@ struct LiveStreamView: View {
 
     private var connectionLabel: String {
         if !manager.isStreaming { return "Idle" }
+        if manager.isPrivacyMode {
+            return manager.isSignalingConnected ? "Private" : "Disconnected"
+        }
         return manager.isSignalingConnected ? "Connected" : "Disconnected"
     }
 

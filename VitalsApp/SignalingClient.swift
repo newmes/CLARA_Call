@@ -5,6 +5,9 @@ enum SignalingMessage {
     case answer(sdp: String)
     case candidate(sdpMid: String?, sdpMLineIndex: Int32, candidate: String)
     case transcription(text: String, timestamp: Double)
+    case privacyStart
+    case embedding(values: [Float], timestamp: Double)
+    case debugFrame(imageData: Data, embeddingValues: [Float], timestamp: Double)
 
     func jsonData() throws -> Data {
         var dict: [String: Any] = [:]
@@ -23,6 +26,17 @@ enum SignalingMessage {
         case .transcription(let text, let timestamp):
             dict["type"] = "transcription"
             dict["text"] = text
+            dict["timestamp"] = timestamp
+        case .privacyStart:
+            dict["type"] = "privacy_start"
+        case .embedding(let values, let timestamp):
+            dict["type"] = "embedding"
+            dict["values"] = values
+            dict["timestamp"] = timestamp
+        case .debugFrame(let imageData, let embeddingValues, let timestamp):
+            dict["type"] = "debug_frame"
+            dict["image"] = imageData.base64EncodedString()
+            dict["embedding"] = embeddingValues
             dict["timestamp"] = timestamp
         }
         return try JSONSerialization.data(withJSONObject: dict)
@@ -49,6 +63,18 @@ enum SignalingMessage {
             guard let text = dict["text"] as? String else { return nil }
             let timestamp = dict["timestamp"] as? Double ?? Date().timeIntervalSince1970
             return .transcription(text: text, timestamp: timestamp)
+        case "privacy_start":
+            return .privacyStart
+        case "embedding":
+            guard let values = dict["values"] as? [Float] else { return nil }
+            let timestamp = dict["timestamp"] as? Double ?? Date().timeIntervalSince1970
+            return .embedding(values: values, timestamp: timestamp)
+        case "debug_frame":
+            guard let imageB64 = dict["image"] as? String,
+                  let imageData = Data(base64Encoded: imageB64),
+                  let embedding = dict["embedding"] as? [Float] else { return nil }
+            let timestamp = dict["timestamp"] as? Double ?? Date().timeIntervalSince1970
+            return .debugFrame(imageData: imageData, embeddingValues: embedding, timestamp: timestamp)
         default:
             return nil
         }

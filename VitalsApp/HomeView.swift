@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var manager = WebRTCManager()
     @StateObject private var audioTranscriber = AudioTranscriber()
+    @StateObject private var classifier = MedSigLIPClassifier()
     @State private var showLiveStream = false
 
     var body: some View {
@@ -33,10 +34,13 @@ struct HomeView: View {
             }
         }
         .task {
-            await audioTranscriber.loadModel()
+            async let a: () = audioTranscriber.loadModel()
+            async let b: () = classifier.load()
+            _ = await (a, b)
+            manager.setClassifier(classifier)
         }
         .fullScreenCover(isPresented: $showLiveStream) {
-            LiveStreamView(manager: manager, audioTranscriber: audioTranscriber)
+            LiveStreamView(manager: manager, audioTranscriber: audioTranscriber, classifier: classifier)
         }
     }
 }

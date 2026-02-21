@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import WebRTC
 
 @MainActor
@@ -8,6 +9,18 @@ class WebRTCManager: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var localVideoTrack: RTCVideoTrack?
     @Published var isStreaming = false
+    @Published var isPrivacyMode = false
+
+    var classifier: MedSigLIPClassifier?
+    var debugFrameEnabled = false
+
+    func setClassifier(_ classifier: MedSigLIPClassifier) {
+        self.classifier = classifier
+    }
+
+    private var frameGrabber: VideoFrameGrabber?
+    private var embeddingTimer: Task<Void, Never>?
+    private static let privacyFrameInterval: TimeInterval = 5.0
 
     private static var factory: RTCPeerConnectionFactory = {
         RTCInitializeSSL()
@@ -75,6 +88,61 @@ class WebRTCManager: ObservableObject {
         createPeerConnection()
         addMediaTracks()
         await createAndSendOffer()
+    }
+
+    func sendSignalingMessage(_ message: SignalingMessage) {
+        signalingClient.send(message)
+    }
+
+    func startPrivacyStreaming() async {
+        if videoCapturer == nil { startPreview() }
+
+        // Wait for signaling if not yet connected
+        if !isSignalingConnected {
+            await withCheckedContinuation { continuation in
+                signalingContinuation = continuation
+            }
+        }
+
+        isStreaming = true
+        isPrivacyMode = true
+        signalingClient.send(.privacyStart)
+
+        // Attach frame grabber to local video track
+        let grabber = VideoFrameGrabber()
+        frameGrabber = grabber
+        localVideoTrack?.add(grabber)
+
+        // Start embedding loop
+        embeddingTimer = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(Self.privacyFrameInterval * 1_000_000_000))
+                guard !Task.isCancelled else { break }
+                await self?.captureAndSendEmbedding()
+            }
+        }
+    }
+
+    private func captureAndSendEmbedding() async {
+        guard let grabber = frameGrabber,
+              let cgImage = grabber.grabLatestCGImage(),
+              let classifier else { return }
+
+        do {
+            let embedding = try await classifier.imageEmbedding(for: cgImage)
+            let timestamp = Date().timeIntervalSince1970
+
+            if debugFrameEnabled,
+               let jpegData = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.8) {
+                signalingClient.send(.debugFrame(imageData: jpegData, embeddingValues: embedding, timestamp: timestamp))
+                print("[WebRTCManager] sent debug frame + embedding (\(embedding.count) floats, \(jpegData.count) bytes)")
+            } else {
+                signalingClient.send(.embedding(values: embedding, timestamp: timestamp))
+                print("[WebRTCManager] sent embedding (\(embedding.count) floats)")
+            }
+        } catch {
+            print("[WebRTCManager] embedding error: \(error)")
+        }
     }
 
     // MARK: - Audio Session
@@ -281,6 +349,15 @@ class WebRTCManager: ObservableObject {
     // MARK: - Disconnect
 
     func disconnect() {
+        // Clean up privacy mode
+        embeddingTimer?.cancel()
+        embeddingTimer = nil
+        if let grabber = frameGrabber {
+            localVideoTrack?.remove(grabber)
+            frameGrabber = nil
+        }
+        isPrivacyMode = false
+
         stopPreview()
 
         localAudioTrack?.isEnabled = false
@@ -356,6 +433,32 @@ private class PeerConnectionDelegateAdapter: NSObject, RTCPeerConnectionDelegate
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didOpen dataChannel: RTCDataChannel) {
         print("[WebRTC] data channel opened: \(dataChannel.label)")
+    }
+}
+
+// MARK: - Video Frame Grabber
+
+private class VideoFrameGrabber: NSObject, RTCVideoRenderer {
+    private var latestPixelBuffer: CVPixelBuffer?
+    private let lock = NSLock()
+    private let ciContext = CIContext()
+
+    func setSize(_ size: CGSize) {}
+    func renderFrame(_ frame: RTCVideoFrame?) {
+        guard let frame,
+              let rtcBuffer = frame.buffer as? RTCCVPixelBuffer else { return }
+        lock.lock()
+        latestPixelBuffer = rtcBuffer.pixelBuffer
+        lock.unlock()
+    }
+
+    func grabLatestCGImage() -> CGImage? {
+        lock.lock()
+        let buffer = latestPixelBuffer
+        lock.unlock()
+        guard let buffer else { return nil }
+        let ciImage = CIImage(cvPixelBuffer: buffer)
+        return ciContext.createCGImage(ciImage, from: ciImage.extent)
     }
 }
 

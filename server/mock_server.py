@@ -2,21 +2,33 @@
 """Mock WebRTC signaling + media server for VitalsApp live streaming."""
 
 import asyncio
+import base64
+import io
 import json
 import math
 import os
 import time
 
 import numpy as np
+import torch
+from PIL import Image
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack, RTCConfiguration, RTCIceServer
 from aiortc.sdp import candidate_from_sdp
 from aiortc.contrib.media import MediaRecorder
 from av import AudioFrame
+from transformers import SiglipModel, SiglipImageProcessor
 
 SAMPLE_RATE = 48000
 FRAME_DURATION = 0.02  # 20ms
 SAMPLES_PER_FRAME = int(SAMPLE_RATE * FRAME_DURATION)
+
+# Load MedSigLIP vision encoder for debug frame verification
+print("[Server] Loading MedSigLIP model...")
+siglip_model = SiglipModel.from_pretrained("google/medsiglip-448")
+siglip_processor = SiglipImageProcessor.from_pretrained("google/medsiglip-448")
+siglip_model.eval()
+print("[Server] MedSigLIP model loaded")
 
 TRANSCRIPTION_SAMPLES = [
     "Patient presents with mild respiratory symptoms.",
@@ -67,37 +79,40 @@ async def websocket_handler(request):
 
     print("[Server] WebSocket client connected")
 
-    pc = RTCPeerConnection(
-        RTCConfiguration(iceServers=[RTCIceServer(urls=["stun:stun.l.google.com:19302"])])
-    )
+    pc = None
     recorder = None
     transcription_task = None
     recordings_dir = os.path.join(os.path.dirname(__file__), "recordings")
     os.makedirs(recordings_dir, exist_ok=True)
     recording_path = os.path.join(recordings_dir, f"recording_{int(time.time())}.mp4")
 
-    @pc.on("connectionstatechange")
-    async def on_connectionstatechange():
-        print(f"[Server] Connection state: {pc.connectionState}")
-        if pc.connectionState in ("failed", "closed"):
-            if recorder:
-                print(f"[Server] Stopping recorder...")
-                await recorder.stop()
-                print(f"[Server] Recording saved to: {recording_path}")
-            if transcription_task and not transcription_task.done():
-                transcription_task.cancel()
+    def create_peer_connection():
+        nonlocal pc
+        pc = RTCPeerConnection(
+            RTCConfiguration(iceServers=[RTCIceServer(urls=["stun:stun.l.google.com:19302"])])
+        )
 
-    @pc.on("track")
-    async def on_track(track):
-        nonlocal recorder
-        print(f"[Server] Received {track.kind} track")
-        if recorder is None:
-            recorder = MediaRecorder(recording_path)
-        recorder.addTrack(track)
-        if track.kind == "video":
-            # Start recording once we have tracks
-            await recorder.start()
-            print(f"[Server] Recording started: {recording_path}")
+        @pc.on("connectionstatechange")
+        async def on_connectionstatechange():
+            print(f"[Server] Connection state: {pc.connectionState}")
+            if pc.connectionState in ("failed", "closed"):
+                if recorder:
+                    print(f"[Server] Stopping recorder...")
+                    await recorder.stop()
+                    print(f"[Server] Recording saved to: {recording_path}")
+                if transcription_task and not transcription_task.done():
+                    transcription_task.cancel()
+
+        @pc.on("track")
+        async def on_track(track):
+            nonlocal recorder
+            print(f"[Server] Received {track.kind} track")
+            if recorder is None:
+                recorder = MediaRecorder(recording_path)
+            recorder.addTrack(track)
+            if track.kind == "video":
+                await recorder.start()
+                print(f"[Server] Recording started: {recording_path}")
 
     async def send_transcriptions():
         """Send mock transcription messages every 3 seconds."""
@@ -126,8 +141,53 @@ async def websocket_handler(request):
             data = json.loads(msg.data)
             msg_type = data.get("type")
 
-            if msg_type == "offer":
+            if msg_type == "privacy_start":
+                print("[Server] Privacy mode started")
+                # Start sending mock transcriptions
+                transcription_task = asyncio.create_task(send_transcriptions())
+
+            elif msg_type == "debug_frame":
+                image_b64 = data.get("image", "")
+                client_embedding = data.get("embedding", [])
+                ts = data.get("timestamp", 0)
+                try:
+                    # Decode image
+                    image_bytes = base64.b64decode(image_b64)
+                    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+                    # Run through processor + model
+                    inputs = siglip_processor(images=image, return_tensors="pt")
+                    with torch.no_grad():
+                        server_emb = siglip_model.get_image_features(**inputs)
+                    server_emb = server_emb.squeeze(0).float().numpy()
+
+                    # Client embedding
+                    client_emb = np.array(client_embedding, dtype=np.float32)
+
+                    # Cosine similarity
+                    dot = np.dot(client_emb, server_emb)
+                    client_norm = np.linalg.norm(client_emb)
+                    server_norm = np.linalg.norm(server_emb)
+                    cosine_sim = dot / (client_norm * server_norm + 1e-8)
+
+                    print(f"[Server] Debug frame: cosine_similarity={cosine_sim:.6f}, "
+                          f"client_dim={len(client_embedding)}, server_dim={len(server_emb)}, "
+                          f"client_norm={client_norm:.4f}, server_norm={server_norm:.4f}")
+                except Exception as e:
+                    print(f"[Server] Debug frame error: {e}")
+
+            elif msg_type == "embedding":
+                values = data.get("values", [])
+                ts = data.get("timestamp", 0)
+                print(f"[Server] Received embedding: {len(values)} floats (t={ts:.1f})")
+
+            elif msg_type == "transcription":
+                text = data.get("text", "")
+                print(f"[Server] Received transcription: {text}")
+
+            elif msg_type == "offer":
                 print("[Server] Received offer")
+                create_peer_connection()
                 offer = RTCSessionDescription(sdp=data["sdp"], type="offer")
                 await pc.setRemoteDescription(offer)
 
@@ -151,7 +211,7 @@ async def websocket_handler(request):
                 candidate_str = data.get("candidate", "")
                 sdp_mid = data.get("sdpMid", "")
                 sdp_mline_index = data.get("sdpMLineIndex", 0)
-                if candidate_str:
+                if candidate_str and pc:
                     try:
                         candidate = candidate_from_sdp(candidate_str)
                         candidate.sdpMid = sdp_mid
@@ -178,7 +238,8 @@ async def websocket_handler(request):
             print(f"[Server] Recording saved to: {recording_path}")
         except Exception as e:
             print(f"[Server] Error stopping recorder: {e}")
-    await pc.close()
+    if pc:
+        await pc.close()
 
     return ws
 
