@@ -38,6 +38,7 @@ struct LiveStreamView: View {
     @ObservedObject var classifier: MedSigLIPClassifier
     @State private var privacyModeEnabled = false
     @State private var debugFrameEnabled = false
+    @State private var isHoldingTalk = false
 
     var body: some View {
         ZStack {
@@ -61,6 +62,9 @@ struct LiveStreamView: View {
                 Spacer()
                 if manager.isStreaming {
                     chatOverlay
+                    if manager.isPrivacyMode {
+                        pushToTalkButton
+                    }
                 } else {
                     startButton
                 }
@@ -72,8 +76,7 @@ struct LiveStreamView: View {
                 guard let manager else { return }
                 manager.messages.append(ChatMessage(text: text, isFromServer: false))
                 if manager.isPrivacyMode {
-                    let timestamp = Date().timeIntervalSince1970
-                    manager.sendSignalingMessage(.transcription(text: text, timestamp: timestamp))
+                    manager.consultCareAI(patientText: text)
                 }
             }
         }
@@ -129,26 +132,34 @@ struct LiveStreamView: View {
                 .frame(width: 240)
             }
 
-            Button {
-                Task {
-                    if privacyModeEnabled {
-                        manager.debugFrameEnabled = debugFrameEnabled
-                        await manager.startPrivacyStreaming()
-                    } else {
-                        await manager.startStreaming()
+            if audioTranscriber.state == .ready {
+                Button {
+                    Task {
+                        if privacyModeEnabled {
+                            manager.startPrivacyStreaming()
+                            audioTranscriber.startListening()
+                        } else {
+                            manager.connectSignaling()
+                            await manager.startStreaming()
+                            audioTranscriber.startTranscribing()
+                        }
                     }
-                    audioTranscriber.startTranscribing()
+                } label: {
+                    Label(
+                        privacyModeEnabled ? "Start Private" : "Start Streaming",
+                        systemImage: privacyModeEnabled ? "lock.shield.fill" : "video.fill"
+                    )
+                    .font(.headline)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .foregroundStyle(.white)
                 }
-            } label: {
-                Label(
-                    privacyModeEnabled ? "Start Private" : "Start Streaming",
-                    systemImage: privacyModeEnabled ? "lock.shield.fill" : "video.fill"
-                )
-                .font(.headline)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
-                .background(.ultraThinMaterial, in: Capsule())
-                .foregroundStyle(.white)
+            } else {
+                Label("Loading models...", systemImage: "arrow.trianglehead.2.clockwise")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .symbolEffect(.rotate)
             }
         }
         .padding(.bottom, 60)
@@ -170,15 +181,42 @@ struct LiveStreamView: View {
 
     private var connectionColor: Color {
         if !manager.isStreaming { return .gray }
+        if manager.isPrivacyMode { return .green }
         return manager.isSignalingConnected ? .green : .red
     }
 
     private var connectionLabel: String {
         if !manager.isStreaming { return "Idle" }
-        if manager.isPrivacyMode {
-            return manager.isSignalingConnected ? "Private" : "Disconnected"
-        }
+        if manager.isPrivacyMode { return "Private" }
         return manager.isSignalingConnected ? "Connected" : "Disconnected"
+    }
+
+    // MARK: - Push to Talk
+
+    private var pushToTalkButton: some View {
+        Circle()
+            .fill(isHoldingTalk ? Color.red.opacity(0.8) : Color.white.opacity(0.2))
+            .frame(width: 64, height: 64)
+            .overlay(
+                Image(systemName: isHoldingTalk ? "mic.fill" : "mic")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+            )
+            .background(.ultraThinMaterial, in: Circle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if !isHoldingTalk {
+                            isHoldingTalk = true
+                            audioTranscriber.beginUtterance()
+                        }
+                    }
+                    .onEnded { _ in
+                        isHoldingTalk = false
+                        audioTranscriber.endUtteranceAndTranscribe()
+                    }
+            )
+            .padding(.bottom, 32)
     }
 
     // MARK: - Chat Overlay

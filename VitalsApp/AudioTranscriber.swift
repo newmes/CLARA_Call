@@ -35,6 +35,7 @@ final class AudioTranscriber: ObservableObject {
 
     private var inferenceTask: Task<Void, Never>?
     private var isInferring = false
+    private var isRecording = false
 
     // MARK: - Load Model
 
@@ -61,8 +62,29 @@ final class AudioTranscriber: ObservableObject {
         guard state == .ready else { return }
 
         state = .transcribing
+        isRecording = true
         startAudioEngine()
         startInferenceLoop()
+    }
+
+    /// Start audio engine only (for push-to-talk). No inference loop.
+    func startListening() {
+        guard state == .ready else { return }
+
+        state = .transcribing
+        startAudioEngine()
+    }
+
+    func beginUtterance() {
+        bufferLock.lock()
+        pcmBuffer.removeAll()
+        bufferLock.unlock()
+        isRecording = true
+    }
+
+    func endUtteranceAndTranscribe() {
+        isRecording = false
+        Task { await runInference() }
     }
 
     func stopTranscribing() {
@@ -127,7 +149,8 @@ final class AudioTranscriber: ObservableObject {
                 return
             }
 
-            guard let channelData = convertedBuffer.floatChannelData else { return }
+            guard self.isRecording,
+                  let channelData = convertedBuffer.floatChannelData else { return }
             let samples = Array(UnsafeBufferPointer(
                 start: channelData[0],
                 count: Int(convertedBuffer.frameLength)

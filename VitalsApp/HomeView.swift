@@ -20,7 +20,6 @@ struct HomeView: View {
                 Spacer()
 
                 Button {
-                    manager.connectSignaling()
                     showLiveStream = true
                 } label: {
                     Text("Start Session")

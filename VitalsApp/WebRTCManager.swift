@@ -13,6 +13,7 @@ class WebRTCManager: ObservableObject {
 
     var classifier: MedSigLIPClassifier?
     var debugFrameEnabled = false
+    var careAIBaseURL = "https://imperceptible-makena-overabusively.ngrok-free.dev"
 
     func setClassifier(_ classifier: MedSigLIPClassifier) {
         self.classifier = classifier
@@ -21,6 +22,8 @@ class WebRTCManager: ObservableObject {
     private var frameGrabber: VideoFrameGrabber?
     private var embeddingTimer: Task<Void, Never>?
     private static let privacyFrameInterval: TimeInterval = 5.0
+    private var latestEmbedding: [Float]?
+    private let careAIClient = CareAIClient()
 
     private static var factory: RTCPeerConnectionFactory = {
         RTCInitializeSSL()
@@ -94,54 +97,67 @@ class WebRTCManager: ObservableObject {
         signalingClient.send(message)
     }
 
-    func startPrivacyStreaming() async {
+    func startPrivacyStreaming() {
         if videoCapturer == nil { startPreview() }
-
-        // Wait for signaling if not yet connected
-        if !isSignalingConnected {
-            await withCheckedContinuation { continuation in
-                signalingContinuation = continuation
-            }
-        }
 
         isStreaming = true
         isPrivacyMode = true
-        signalingClient.send(.privacyStart)
+        configureAudioSession()
 
         // Attach frame grabber to local video track
         let grabber = VideoFrameGrabber()
         frameGrabber = grabber
         localVideoTrack?.add(grabber)
 
-        // Start embedding loop
+        // Start embedding loop (compute only, no network)
         embeddingTimer = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64(Self.privacyFrameInterval * 1_000_000_000))
                 guard !Task.isCancelled else { break }
-                await self?.captureAndSendEmbedding()
+                await self?.computeEmbedding()
             }
         }
     }
 
-    private func captureAndSendEmbedding() async {
+    private func computeEmbedding() async {
         guard let grabber = frameGrabber,
               let cgImage = grabber.grabLatestCGImage(),
               let classifier else { return }
 
         do {
             let embedding = try await classifier.imageEmbedding(for: cgImage)
-            let timestamp = Date().timeIntervalSince1970
-
-            if debugFrameEnabled,
-               let jpegData = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.8) {
-                signalingClient.send(.debugFrame(imageData: jpegData, embeddingValues: embedding, timestamp: timestamp))
-                print("[WebRTCManager] sent debug frame + embedding (\(embedding.count) floats, \(jpegData.count) bytes)")
-            } else {
-                signalingClient.send(.embedding(values: embedding, timestamp: timestamp))
-                print("[WebRTCManager] sent embedding (\(embedding.count) floats)")
-            }
+            latestEmbedding = embedding
+            print("[WebRTCManager] computed embedding (\(embedding.count) floats)")
         } catch {
             print("[WebRTCManager] embedding error: \(error)")
+        }
+    }
+
+    // MARK: - Care AI
+
+    func consultCareAI(patientText: String) {
+        guard isPrivacyMode,
+              let embedding = latestEmbedding,
+              !patientText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        Task {
+            do {
+                let response = try await careAIClient.consult(
+                    embedding: embedding, patientText: patientText, baseURL: careAIBaseURL
+                )
+                messages.append(ChatMessage(text: response.nurse_text, isFromServer: true))
+                if let observations = response.visual_assessment?.general_observations {
+                    print("[CareAI] visual: \(observations.joined(separator: ", "))")
+                }
+                if let concerns = response.nurse_structured?.preliminary_concerns {
+                    print("[CareAI] concerns: \(concerns.joined(separator: ", "))")
+                }
+                if let totalMs = response.latency_ms?.total_ms {
+                    print("[CareAI] latency: \(totalMs)ms")
+                }
+            } catch {
+                print("[CareAI] consult error: \(error)")
+            }
         }
     }
 
