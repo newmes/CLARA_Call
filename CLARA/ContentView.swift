@@ -43,7 +43,7 @@ struct ContentView: View {
                 }
                 .padding()
             }
-            .navigationTitle("VitalsApp")
+            .navigationTitle("CLARA")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if classifier.isLoading { ProgressView() }

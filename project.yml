@@ -1,6 +1,6 @@
-name: VitalsApp
+name: CLARA
 options:
-  bundleIdPrefix: com.vitalsapp
+  bundleIdPrefix: com.clara
   deploymentTarget:
     iOS: "18.0"
   xcodeVersion: "16.2"
@@ -14,20 +14,20 @@ packages:
     from: "126.0.0"
 
 targets:
-  VitalsApp:
+  CLARA:
     type: application
     platform: iOS
     sources:
-      - path: VitalsApp
+      - path: CLARA
         excludes:
           - "Resources/**"
-      - path: VitalsApp/Resources/MedSigLIP_VisionEncoder.mlpackage
-      - path: VitalsApp/Resources/MedSigLIP_TextEncoder.mlpackage
-      - path: VitalsApp/Resources/tokenizer
+      - path: CLARA/Resources/MedSigLIP_VisionEncoder.mlpackage
+      - path: CLARA/Resources/MedSigLIP_TextEncoder.mlpackage
+      - path: CLARA/Resources/tokenizer
         type: folder
         buildPhase: resources
-      - path: VitalsApp/Resources/MedASR.mlpackage
-      - path: VitalsApp/Resources/medasr_tokenizer
+      - path: CLARA/Resources/MedASR.mlpackage
+      - path: CLARA/Resources/medasr_tokenizer
         type: folder
         buildPhase: resources
     dependencies:
@@ -35,7 +35,7 @@ targets:
         product: Transformers
       - package: WebRTC
     info:
-      path: VitalsApp/Info.plist
+      path: CLARA/Info.plist
       properties:
         UILaunchScreen: {}
         NSCameraUsageDescription: "Take photos for classification"

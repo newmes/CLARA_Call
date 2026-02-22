@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mock WebRTC signaling + media server for VitalsApp live streaming."""
+"""Mock WebRTC signaling + media server for CLARA live streaming."""
 
 import asyncio
 import base64

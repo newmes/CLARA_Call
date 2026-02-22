@@ -11,7 +11,7 @@ DerivedData/
 .swiftpm/
 
 # HuggingFace download cache
-VitalsApp/Resources/tokenizer/.cache/
+CLARA/Resources/tokenizer/.cache/
 
 # Server
 server/venv/

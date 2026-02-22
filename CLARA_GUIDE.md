@@ -1,4 +1,4 @@
-# VitalsApp - iOS MedSigLIP Classifier
+# CLARA - iOS MedSigLIP Classifier
 
 Guide for building an iOS app that runs MedSigLIP-448 on-device for zero-shot medical image classification with custom text labels.
 
@@ -27,9 +27,9 @@ huggingface-cli download google/medsiglip-448 \
 ### Using XcodeGen (project.yml)
 
 ```yaml
-name: VitalsApp
+name: CLARA
 options:
-  bundleIdPrefix: com.vitalsapp
+  bundleIdPrefix: com.clara
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "16.2"
@@ -40,23 +40,23 @@ packages:
     from: "0.1.12"
 
 targets:
-  VitalsApp:
+  CLARA:
     type: application
     platform: iOS
     sources:
-      - path: VitalsApp
+      - path: CLARA
         excludes:
           - "Resources/**"
-      - path: VitalsApp/Resources/MedSigLIP_VisionEncoder.mlpackage
-      - path: VitalsApp/Resources/MedSigLIP_TextEncoder.mlpackage
-      - path: VitalsApp/Resources/tokenizer
+      - path: CLARA/Resources/MedSigLIP_VisionEncoder.mlpackage
+      - path: CLARA/Resources/MedSigLIP_TextEncoder.mlpackage
+      - path: CLARA/Resources/tokenizer
         type: folder
         buildPhase: resources
     dependencies:
       - package: swift-transformers
         product: Transformers
     info:
-      path: VitalsApp/Info.plist
+      path: CLARA/Info.plist
       properties:
         UILaunchScreen: {}
         NSCameraUsageDescription: "Take photos for classification"
@@ -84,8 +84,8 @@ xcodegen generate
 ## Project Structure
 
 ```
-VitalsApp/
-  VitalsApp/
+CLARA/
+  CLARA/
     App.swift                       # @main entry point
     ContentView.swift               # UI: image picker, label input, results
     MedSigLIPClassifier.swift       # Model loading, tokenization, inference
@@ -111,7 +111,7 @@ Standard SwiftUI entry point.
 import SwiftUI
 
 @main
-struct VitalsApp: App {
+struct CLARA: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -432,7 +432,7 @@ struct ContentView: View {
                 }
                 .padding()
             }
-            .navigationTitle("VitalsApp")
+            .navigationTitle("CLARA")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if classifier.isLoading { ProgressView() }

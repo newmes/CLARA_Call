@@ -13,7 +13,7 @@ struct HomeView: View {
             VStack {
                 Spacer()
 
-                Text("Vitals")
+                Text("CLARA")
                     .font(.system(size: 48, weight: .bold, design: .default))
                     .foregroundStyle(.white)
 

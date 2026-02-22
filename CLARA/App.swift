@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct VitalsApp: App {
+struct CLARAApp: App {
     var body: some Scene {
         WindowGroup {
             HomeView()
