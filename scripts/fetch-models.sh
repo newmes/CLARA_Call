@@ -15,7 +15,7 @@ for model in "${models[@]}"; do
         continue
     fi
     echo "↓ Downloading $model …"
-    huggingface-cli download "$REPO" "$model" \
+    python3 -m huggingface_hub.commands.huggingface_cli download "$REPO" \
         --repo-type model \
         --local-dir "$DEST" \
         --include "$model/*"

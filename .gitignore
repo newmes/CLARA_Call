@@ -12,6 +12,7 @@ DerivedData/
 
 # CoreML models (fetched via scripts/fetch-models.sh)
 CLARA/Resources/*.mlpackage
+CLARA/Resources/.cache/
 
 # HuggingFace download cache
 CLARA/Resources/tokenizer/
