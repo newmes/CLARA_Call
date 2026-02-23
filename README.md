@@ -12,6 +12,7 @@
 ## Requirements
 
 - Xcode 16.2+
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 - iOS 18.0+ deployment target
 - Python 3 with `huggingface_hub` installed (`pip install huggingface_hub`)
 - ~1.3 GB disk space for CoreML models
@@ -39,16 +40,13 @@ This downloads into `CLARA/Resources/`:
 | `MedASR.mlpackage` | 403 MB | Medical speech recognition |
 | `MedSigLIP_VisionEncoder.mlpackage` | 815 MB | Medical image embedding |
 
-### 3. Open in Xcode
+### 3. Generate the Xcode project
 
-```bash
-open CLARA.xcodeproj
-```
-
-Or regenerate the project from `project.yml` if you have [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+The `.xcodeproj` is not checked in — it's generated from `project.yml`:
 
 ```bash
 xcodegen generate
+open CLARA.xcodeproj
 ```
 
 ### 4. Build and run

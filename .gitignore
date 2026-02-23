@@ -1,7 +1,7 @@
 .DS_Store
 
-# Xcode
-*.xcodeproj/project.pbxproj
+# Xcode (generated from project.yml via XcodeGen)
+*.xcodeproj/
 xcuserdata/
 *.xcscmblueprint
 DerivedData/
