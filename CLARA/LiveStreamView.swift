@@ -36,48 +36,67 @@ struct LiveStreamView: View {
     @ObservedObject var manager: WebRTCManager
     @ObservedObject var audioTranscriber: AudioTranscriber
     @ObservedObject var classifier: MedSigLIPClassifier
-    @State private var privacyModeEnabled = false
-    @State private var debugFrameEnabled = false
     @State private var isHoldingTalk = false
+    @State private var isTalkingToggled = false
+    @State private var pushToTalkMode = true
+    @State private var pipOffset: CGSize = .zero
+    @State private var dragOffset: CGSize = .zero
+
+    private let pipSize = CGSize(width: 120, height: 160)
 
     var body: some View {
-        ZStack {
-            // Camera preview
-            VideoRendererView(track: manager.localVideoTrack)
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                // Background (extends behind safe area)
+                Color.black.ignoresSafeArea()
 
-            // Gradient overlay
-            VStack {
-                LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 120)
-                Spacer()
-                LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 200)
-            }
-            .ignoresSafeArea()
+                // UI overlay
+                VStack {
+                    topBar
+                    Spacer()
 
-            // UI overlay
-            VStack {
-                topBar
-                Spacer()
-                if manager.isStreaming {
-                    chatOverlay
-                    if manager.isPrivacyMode {
-                        pushToTalkButton
+                    // Caller's view — CLARA image
+                    if let img = UIImage(named: "CLARA_Image") {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .padding(.horizontal, 24)
                     }
-                } else {
-                    startButton
+
+                    chatOverlay
+                    talkControls
                 }
+
+                // PIP camera preview (on top)
+                VideoRendererView(track: manager.localVideoTrack)
+                    .frame(width: pipSize.width, height: pipSize.height)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
+                    .position(pipPosition(in: geo.size))
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                dragOffset = value.translation
+                            }
+                            .onEnded { value in
+                                pipOffset = CGSize(
+                                    width: pipOffset.width + value.translation.width,
+                                    height: pipOffset.height + value.translation.height
+                                )
+                                dragOffset = .zero
+                                snapToCorner(in: geo.size)
+                            }
+                    )
             }
         }
         .onAppear {
-            manager.startPreview()
+            manager.startStreaming()
+            audioTranscriber.startListening()
             audioTranscriber.onTranscription = { [weak manager] text in
                 guard let manager else { return }
                 manager.messages.append(ChatMessage(text: text, isFromServer: false))
-                if manager.isPrivacyMode {
-                    manager.consultCareAI(patientText: text)
-                }
+                manager.consultCareAI(patientText: text)
             }
         }
         .onDisappear {
@@ -86,91 +105,65 @@ struct LiveStreamView: View {
         }
     }
 
+    // MARK: - PIP Positioning
+
+    private func pipPosition(in containerSize: CGSize) -> CGPoint {
+        let padding: CGFloat = 16
+        let defaultX = containerSize.width - pipSize.width / 2 - padding
+        let defaultY = padding + 60 + pipSize.height / 2 // below safe area
+        return CGPoint(
+            x: defaultX + pipOffset.width + dragOffset.width,
+            y: defaultY + pipOffset.height + dragOffset.height
+        )
+    }
+
+    private func snapToCorner(in containerSize: CGSize) {
+        let padding: CGFloat = 16
+        let currentPos = pipPosition(in: containerSize)
+
+        let midX = containerSize.width / 2
+        let midY = containerSize.height / 2
+
+        let targetX: CGFloat = currentPos.x < midX
+            ? padding + pipSize.width / 2
+            : containerSize.width - pipSize.width / 2 - padding
+        let targetY: CGFloat = currentPos.y < midY
+            ? padding + 60 + pipSize.height / 2
+            : containerSize.height - pipSize.height / 2 - padding - 80
+
+        let defaultX = containerSize.width - pipSize.width / 2 - padding
+        let defaultY = padding + 60 + pipSize.height / 2
+
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            pipOffset = CGSize(
+                width: targetX - defaultX,
+                height: targetY - defaultY
+            )
+        }
+    }
+
     // MARK: - Top Bar
 
     private var topBar: some View {
         HStack {
-            if manager.isStreaming {
-                connectionIndicator
-            }
+            connectionIndicator
             Spacer()
-            if manager.isStreaming {
-                Button(action: { manager.disconnect(); dismiss() }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.white)
-                }
+            Button(action: { manager.disconnect(); dismiss() }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white)
             }
         }
         .padding(.horizontal)
         .padding(.top, 8)
     }
 
-    private var startButton: some View {
-        VStack(spacing: 20) {
-            Toggle(isOn: $privacyModeEnabled) {
-                Label("Privacy Mode", systemImage: "lock.shield")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white)
-            }
-            .tint(.green)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 10)
-            .background(.ultraThinMaterial, in: Capsule())
-            .frame(width: 240)
-
-            if privacyModeEnabled {
-                Toggle(isOn: $debugFrameEnabled) {
-                    Label("Debug Frames", systemImage: "ant")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                }
-                .tint(.orange)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial, in: Capsule())
-                .frame(width: 240)
-            }
-
-            if audioTranscriber.state == .ready {
-                Button {
-                    Task {
-                        if privacyModeEnabled {
-                            manager.startPrivacyStreaming()
-                            audioTranscriber.startListening()
-                        } else {
-                            manager.connectSignaling()
-                            await manager.startStreaming()
-                            audioTranscriber.startTranscribing()
-                        }
-                    }
-                } label: {
-                    Label(
-                        privacyModeEnabled ? "Start Private" : "Start Streaming",
-                        systemImage: privacyModeEnabled ? "lock.shield.fill" : "video.fill"
-                    )
-                    .font(.headline)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .foregroundStyle(.white)
-                }
-            } else {
-                Label("Loading models...", systemImage: "arrow.trianglehead.2.clockwise")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .symbolEffect(.rotate)
-            }
-        }
-        .padding(.bottom, 60)
-    }
-
     private var connectionIndicator: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(connectionColor)
+                .fill(.green)
                 .frame(width: 10, height: 10)
-            Text(connectionLabel)
+            Text("Private")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.white)
         }
@@ -179,44 +172,73 @@ struct LiveStreamView: View {
         .background(.ultraThinMaterial, in: Capsule())
     }
 
-    private var connectionColor: Color {
-        if !manager.isStreaming { return .gray }
-        if manager.isPrivacyMode { return .green }
-        return manager.isSignalingConnected ? .green : .red
-    }
-
-    private var connectionLabel: String {
-        if !manager.isStreaming { return "Idle" }
-        if manager.isPrivacyMode { return "Private" }
-        return manager.isSignalingConnected ? "Connected" : "Disconnected"
-    }
-
     // MARK: - Push to Talk
 
-    private var pushToTalkButton: some View {
-        Circle()
-            .fill(isHoldingTalk ? Color.red.opacity(0.8) : Color.white.opacity(0.2))
-            .frame(width: 64, height: 64)
-            .overlay(
-                Image(systemName: isHoldingTalk ? "mic.fill" : "mic")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-            )
-            .background(.ultraThinMaterial, in: Circle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        if !isHoldingTalk {
-                            isHoldingTalk = true
-                            audioTranscriber.beginUtterance()
-                        }
-                    }
-                    .onEnded { _ in
-                        isHoldingTalk = false
-                        audioTranscriber.endUtteranceAndTranscribe()
-                    }
-            )
-            .padding(.bottom, 32)
+    private var isListening: Bool {
+        pushToTalkMode ? isHoldingTalk : isTalkingToggled
+    }
+
+    private var talkControls: some View {
+        VStack(spacing: 12) {
+            talkButton
+            pttToggle
+        }
+        .padding(.bottom, 32)
+    }
+
+    private var talkButton: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isListening ? "mic.fill" : "mic")
+                .font(.title3)
+            Text(isListening ? "Listening..." : (pushToTalkMode ? "Hold to Talk" : "Tap to Talk"))
+                .font(.subheadline.weight(.medium))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 16)
+        .background(
+            isListening ? Color.red.opacity(0.8) : Color.white.opacity(0.2),
+            in: Capsule()
+        )
+        .background(.ultraThinMaterial, in: Capsule())
+        .gesture(pushToTalkMode ? holdGesture : nil)
+        .onTapGesture {
+            guard !pushToTalkMode else { return }
+            if isTalkingToggled {
+                isTalkingToggled = false
+                audioTranscriber.endUtteranceAndTranscribe()
+            } else {
+                isTalkingToggled = true
+                audioTranscriber.beginUtterance()
+            }
+        }
+    }
+
+    private var holdGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { _ in
+                if !isHoldingTalk {
+                    isHoldingTalk = true
+                    audioTranscriber.beginUtterance()
+                }
+            }
+            .onEnded { _ in
+                isHoldingTalk = false
+                audioTranscriber.endUtteranceAndTranscribe()
+            }
+    }
+
+    private var pttToggle: some View {
+        HStack(spacing: 6) {
+            Text("Hold")
+                .foregroundStyle(pushToTalkMode ? .white : .white.opacity(0.5))
+            Toggle("", isOn: $pushToTalkMode)
+                .labelsHidden()
+                .tint(.gray)
+            Text("Tap")
+                .foregroundStyle(!pushToTalkMode ? .white : .white.opacity(0.5))
+        }
+        .font(.caption.weight(.medium))
     }
 
     // MARK: - Chat Overlay
