@@ -76,9 +76,9 @@ struct LiveStreamView: View {
         .onAppear {
             manager.startStreaming()
             audioTranscriber.startListening()
-            audioTranscriber.onTranscription = { [weak manager] text in
+            audioTranscriber.onTranscription = { [weak manager] text, audioData in
                 guard let manager else { return }
-                manager.messages.append(ChatMessage(text: text, isFromServer: false))
+                manager.messages.append(ChatMessage(text: text, isFromServer: false, audioData: audioData))
                 manager.consultCareAI(patientText: text)
             }
         }
@@ -212,17 +212,29 @@ struct LiveStreamView: View {
                     .frame(width: 28, height: 28)
                     .clipShape(Circle())
             }
-            Text(message.text)
-                .font(.subheadline)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    message.isFromServer
-                        ? Color.white.opacity(0.2)
-                        : Color.blue.opacity(0.7)
-                )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            HStack(spacing: 6) {
+                Text(message.text)
+                    .font(.subheadline)
+                if message.audioData != nil {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                message.isFromServer
+                    ? Color.white.opacity(0.2)
+                    : Color.blue.opacity(0.7)
+            )
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .onTapGesture {
+                if let audio = message.audioData {
+                    manager.playAudio(data: audio)
+                }
+            }
             if message.isFromServer { Spacer() }
         }
     }

@@ -21,7 +21,8 @@ class WebRTCManager: ObservableObject {
     private static let privacyFrameInterval: TimeInterval = 5.0
     private var latestEmbedding: [Float]?
     private let careAIClient = CareAIClient()
-    private var audioPlayer: AVAudioPlayer?
+    private var playbackEngine: AVAudioEngine?
+    private var playerNode: AVAudioPlayerNode?
 
     private static var factory: RTCPeerConnectionFactory = {
         RTCInitializeSSL()
@@ -104,9 +105,12 @@ class WebRTCManager: ObservableObject {
                 let response = try await careAIClient.consult(
                     embedding: embedding, patientText: patientText, baseURL: careAIBaseURL
                 )
-                messages.append(ChatMessage(text: response.nurse_text, isFromServer: true))
-                if let b64 = response.audio_base64, let audioData = Data(base64Encoded: b64) {
-                    self.playAudio(data: audioData)
+                let hasB64 = response.audio_base64 != nil
+                let serverAudio = response.audio_base64.flatMap { Data(base64Encoded: $0) }
+                print("[CareAI] audio_base64 present: \(hasB64), decoded bytes: \(serverAudio?.count ?? 0)")
+                messages.append(ChatMessage(text: response.nurse_text, isFromServer: true, audioData: serverAudio))
+                if let serverAudio {
+                    self.playAudio(data: serverAudio)
                 }
                 if let observations = response.visual_assessment?.general_observations {
                     print("[CareAI] visual: \(observations.joined(separator: ", "))")
@@ -125,13 +129,46 @@ class WebRTCManager: ObservableObject {
 
     // MARK: - TTS Playback
 
-    private func playAudio(data: Data) {
+    func playAudio(data: Data) {
+        // Stop any previous playback
+        playerNode?.stop()
+        playbackEngine?.stop()
+        playbackEngine = nil
+        playerNode = nil
+
+        // Re-apply speaker override
+        let session = RTCAudioSession.sharedInstance()
+        session.lockForConfiguration()
+        try? session.overrideOutputAudioPort(.speaker)
+        session.unlockForConfiguration()
+
         do {
-            let player = try AVAudioPlayer(data: data)
-            audioPlayer = player
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("playback.wav")
+            try data.write(to: tempURL)
+            let file = try AVAudioFile(forReading: tempURL)
+            guard let buffer = AVAudioPCMBuffer(
+                pcmFormat: file.processingFormat,
+                frameCapacity: AVAudioFrameCount(file.length)
+            ) else {
+                print("[WebRTCManager] failed to create PCM buffer")
+                return
+            }
+            try file.read(into: buffer)
+
+            let engine = AVAudioEngine()
+            let player = AVAudioPlayerNode()
+            engine.attach(player)
+            engine.connect(player, to: engine.mainMixerNode, format: buffer.format)
+
+            try engine.start()
+            player.scheduleBuffer(buffer)
             player.play()
+
+            playbackEngine = engine
+            playerNode = player
+            print("[WebRTCManager] playing via AVAudioEngine, duration: \(Double(buffer.frameLength) / buffer.format.sampleRate)s")
         } catch {
-            print("[WebRTCManager] audio playback error: \(error)")
+            print("[WebRTCManager] playback error: \(error)")
         }
     }
 
@@ -141,8 +178,11 @@ class WebRTCManager: ObservableObject {
         let audioSession = RTCAudioSession.sharedInstance()
         audioSession.lockForConfiguration()
         do {
-            try audioSession.setCategory(AVAudioSession.Category.playAndRecord)
-            try audioSession.setMode(AVAudioSession.Mode.videoChat)
+            try audioSession.setCategory(
+                AVAudioSession.Category.playAndRecord,
+                with: [.defaultToSpeaker, .allowBluetoothHFP]
+            )
+            try audioSession.setMode(AVAudioSession.Mode.voiceChat)
             try audioSession.overrideOutputAudioPort(.speaker)
             try audioSession.setActive(true)
         } catch {

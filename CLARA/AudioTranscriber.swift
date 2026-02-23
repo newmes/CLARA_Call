@@ -15,7 +15,7 @@ final class AudioTranscriber: ObservableObject {
 
     @Published private(set) var state: State = .idle
 
-    var onTranscription: ((String) -> Void)?
+    var onTranscription: ((String, Data?) -> Void)?
 
     // MARK: - Audio
 
@@ -212,9 +212,62 @@ final class AudioTranscriber: ObservableObject {
             )
 
             guard !text.isEmpty else { return }
-            onTranscription?(text)
+            onTranscription?(text, wavData(from: samples))
         } catch {
             print("[AudioTranscriber] inference error: \(error)")
         }
+    }
+
+    // MARK: - WAV Encoding
+
+    private func wavData(from samples: [Float]) -> Data {
+        let numSamples = samples.count
+        let bytesPerSample = 2
+        let dataSize = numSamples * bytesPerSample
+        let sampleRate = UInt32(Self.sampleRate)
+
+        var data = Data(capacity: 44 + dataSize)
+
+        // RIFF header
+        data.append(contentsOf: [0x52, 0x49, 0x46, 0x46]) // "RIFF"
+        appendUInt32(&data, UInt32(36 + dataSize))
+        data.append(contentsOf: [0x57, 0x41, 0x56, 0x45]) // "WAVE"
+
+        // fmt chunk
+        data.append(contentsOf: [0x66, 0x6D, 0x74, 0x20]) // "fmt "
+        appendUInt32(&data, 16)                             // chunk size
+        appendUInt16(&data, 1)                              // PCM
+        appendUInt16(&data, 1)                              // mono
+        appendUInt32(&data, sampleRate)
+        appendUInt32(&data, sampleRate * UInt32(bytesPerSample)) // byte rate
+        appendUInt16(&data, UInt16(bytesPerSample))         // block align
+        appendUInt16(&data, 16)                             // bits per sample
+
+        // data chunk
+        data.append(contentsOf: [0x64, 0x61, 0x74, 0x61]) // "data"
+        appendUInt32(&data, UInt32(dataSize))
+
+        for sample in samples {
+            let clamped = max(-1.0, min(1.0, sample))
+            let int16 = Int16(clamped * Float(Int16.max))
+            appendInt16(&data, int16)
+        }
+
+        return data
+    }
+
+    private func appendUInt16(_ data: inout Data, _ value: UInt16) {
+        var v = value.littleEndian
+        data.append(Data(bytes: &v, count: 2))
+    }
+
+    private func appendUInt32(_ data: inout Data, _ value: UInt32) {
+        var v = value.littleEndian
+        data.append(Data(bytes: &v, count: 4))
+    }
+
+    private func appendInt16(_ data: inout Data, _ value: Int16) {
+        var v = value.littleEndian
+        data.append(Data(bytes: &v, count: 2))
     }
 }
