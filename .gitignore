@@ -10,8 +10,11 @@ DerivedData/
 .build/
 .swiftpm/
 
+# CoreML models (fetched via scripts/fetch-models.sh)
+CLARA/Resources/*.mlpackage
+
 # HuggingFace download cache
-CLARA/Resources/tokenizer/.cache/
+CLARA/Resources/tokenizer/
 
 # Server
 server/venv/
