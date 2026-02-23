@@ -6,9 +6,6 @@ options:
   xcodeVersion: "16.2"
 
 packages:
-  swift-transformers:
-    url: https://github.com/huggingface/swift-transformers
-    from: "0.1.12"
   WebRTC:
     url: https://github.com/stasel/WebRTC
     from: "126.0.0"
@@ -22,10 +19,6 @@ targets:
         excludes:
           - "Resources/**"
       - path: CLARA/Resources/MedSigLIP_VisionEncoder.mlpackage
-      - path: CLARA/Resources/MedSigLIP_TextEncoder.mlpackage
-      - path: CLARA/Resources/tokenizer
-        type: folder
-        buildPhase: resources
       - path: CLARA/Resources/MedASR.mlpackage
       - path: CLARA/Resources/medasr_tokenizer
         type: folder
@@ -35,8 +28,6 @@ targets:
       - path: CLARA_cropped.png
         buildPhase: resources
     dependencies:
-      - package: swift-transformers
-        product: Transformers
       - package: WebRTC
     info:
       path: CLARA/Info.plist
