@@ -6,7 +6,7 @@
 
 - **On-device medical image embeddings** via [MedSigLIP](https://huggingface.co/google/medsiglip-448) vision encoder (CoreML)
 - **On-device speech recognition** via [MedASR](https://huggingface.co/google/medasr) (CoreML + CTC decoding)
-- **Live camera streaming** with WebRTC
+- **Live camera feed** with real-time frame capture for visual analysis
 - **AI nurse consultations** powered by a Care AI backend — interprets visual findings and patient speech in real time
 
 ## Requirements
@@ -81,7 +81,7 @@ scripts/
 ## How It Works
 
 1. **Startup** — The app loads MedASR and MedSigLIP VisionEncoder onto the Neural Engine in parallel
-2. **Live session** — Camera feed streams via WebRTC; every 5 seconds a frame is grabbed and run through the vision encoder to produce a 1152-dim medical image embedding
+2. **Live session** — The camera feed is captured locally; every 5 seconds a frame is grabbed and run through the vision encoder to produce a 1152-dim medical image embedding
 3. **Speech** — Audio is captured, converted to mel spectrograms, and decoded on-device via MedASR with CTC decoding
 4. **Consultation** — The image embedding + transcribed patient speech are sent to the Care AI backend, which returns a structured nurse response with visual assessment findings and follow-up questions
 5. **Playback** — The backend response includes TTS audio that plays back through the app
