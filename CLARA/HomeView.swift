@@ -23,10 +23,17 @@ struct HomeView: View {
 
             VStack {
                 Spacer()
+                
+                Image(uiImage: UIImage(named: "CLARA_Image")!)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 170)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Text("CLARA")
-                    .font(.system(size: 48, weight: .bold, design: .default))
+                    .font(.system(size: 48, weight: .bold))
                     .foregroundStyle(.white)
+                
                 Text("Clinical Longitudinal AI Research Assistant")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.6))
@@ -68,3 +75,4 @@ struct HomeView: View {
         }
     }
 }
+

@@ -92,7 +92,7 @@ actor CareAIClient {
                 patient_text: patientText,
                 drug_name: nil,
                 indication: nil,
-                skip_tts: true
+                skip_tts: false
             )
         )
 

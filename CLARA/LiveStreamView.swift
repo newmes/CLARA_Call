@@ -39,55 +39,38 @@ struct LiveStreamView: View {
     @State private var isHoldingTalk = false
     @State private var isTalkingToggled = false
     @State private var pushToTalkMode = true
-    @State private var pipOffset: CGSize = .zero
-    @State private var dragOffset: CGSize = .zero
-
-    private let pipSize = CGSize(width: 120, height: 160)
-
+    @State private var showTalkSettings = false
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // Background (extends behind safe area)
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                // UI overlay
-                VStack {
-                    topBar
-                    Spacer()
+            VStack(spacing: 12) {
+                Spacer()
+                controlBar
+                chatOverlay
+                ZStack {
+                    talkButton
 
-                    // Caller's view — CLARA image
-                    if let img = UIImage(named: "CLARA_Image") {
-                        Image(uiImage: img)
-                            .resizable()
-                            .scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .padding(.horizontal, 24)
+                    HStack {
+                        Spacer()
+                        Button { showTalkSettings.toggle() } label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.7))
+                                .padding(10)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .popover(isPresented: $showTalkSettings,
+                                 attachmentAnchor: .point(.top),
+                                 arrowEdge: .bottom) {
+                            pttToggle
+                                .padding()
+                                .presentationCompactAdaptation(.popover)
+                        }
                     }
-
-                    chatOverlay
-                    talkControls
                 }
-
-                // PIP camera preview (on top)
-                VideoRendererView(track: manager.localVideoTrack)
-                    .frame(width: pipSize.width, height: pipSize.height)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
-                    .position(pipPosition(in: geo.size))
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                dragOffset = value.translation
-                            }
-                            .onEnded { value in
-                                pipOffset = CGSize(
-                                    width: pipOffset.width + value.translation.width,
-                                    height: pipOffset.height + value.translation.height
-                                )
-                                dragOffset = .zero
-                                snapToCorner(in: geo.size)
-                            }
-                    )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
         }
         .onAppear {
@@ -105,85 +88,39 @@ struct LiveStreamView: View {
         }
     }
 
-    // MARK: - PIP Positioning
+    // MARK: - Control Bar
 
-    private func pipPosition(in containerSize: CGSize) -> CGPoint {
-        let padding: CGFloat = 16
-        let defaultX = containerSize.width - pipSize.width / 2 - padding
-        let defaultY = padding + 60 + pipSize.height / 2 // below safe area
-        return CGPoint(
-            x: defaultX + pipOffset.width + dragOffset.width,
-            y: defaultY + pipOffset.height + dragOffset.height
-        )
-    }
+    private var controlBar: some View {
+        HStack(spacing: 16) {
+            VideoRendererView(track: manager.localVideoTrack)
+                .frame(width: 120, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-    private func snapToCorner(in containerSize: CGSize) {
-        let padding: CGFloat = 16
-        let currentPos = pipPosition(in: containerSize)
+            VStack(spacing: 10) {
+                Text("Privacy Mode enabled")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.6))
 
-        let midX = containerSize.width / 2
-        let midY = containerSize.height / 2
-
-        let targetX: CGFloat = currentPos.x < midX
-            ? padding + pipSize.width / 2
-            : containerSize.width - pipSize.width / 2 - padding
-        let targetY: CGFloat = currentPos.y < midY
-            ? padding + 60 + pipSize.height / 2
-            : containerSize.height - pipSize.height / 2 - padding - 80
-
-        let defaultX = containerSize.width - pipSize.width / 2 - padding
-        let defaultY = padding + 60 + pipSize.height / 2
-
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-            pipOffset = CGSize(
-                width: targetX - defaultX,
-                height: targetY - defaultY
-            )
-        }
-    }
-
-    // MARK: - Top Bar
-
-    private var topBar: some View {
-        HStack {
-            connectionIndicator
-            Spacer()
-            Button(action: { manager.disconnect(); dismiss() }) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.white)
+                Button { manager.disconnect(); dismiss() } label: {
+                    Text("Hang Up")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(Color.red, in: Capsule())
+                }
             }
+            .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal)
-        .padding(.top, 8)
-    }
-
-    private var connectionIndicator: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(.green)
-                .frame(width: 10, height: 10)
-            Text("Private")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(.ultraThinMaterial, in: Capsule())
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Push to Talk
 
     private var isListening: Bool {
         pushToTalkMode ? isHoldingTalk : isTalkingToggled
-    }
-
-    private var talkControls: some View {
-        VStack(spacing: 12) {
-            talkButton
-            pttToggle
-        }
-        .padding(.bottom, 32)
     }
 
     private var talkButton: some View {
@@ -197,7 +134,7 @@ struct LiveStreamView: View {
         .padding(.horizontal, 28)
         .padding(.vertical, 16)
         .background(
-            isListening ? Color.red.opacity(0.8) : Color.white.opacity(0.2),
+            isListening ? Color.red.opacity(0.8) : Color.green,
             in: Capsule()
         )
         .background(.ultraThinMaterial, in: Capsule())
@@ -254,7 +191,6 @@ struct LiveStreamView: View {
                 }
                 .padding(.horizontal)
             }
-            .frame(maxHeight: 200)
             .onChange(of: manager.messages.count) {
                 if let last = manager.messages.last {
                     withAnimation {
@@ -263,32 +199,39 @@ struct LiveStreamView: View {
                 }
             }
         }
-        .padding(.bottom, 16)
+        .padding(.vertical, 16)
     }
 
     private func chatBubble(_ message: ChatMessage) -> some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: 8) {
             if !message.isFromServer { Spacer() }
-            HStack(spacing: 6) {
-                if message.isFromServer {
-                    Image(systemName: "bolt.heart.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .symbolEffect(.bounce.down.byLayer, options: .repeat(.periodic(delay: 0.7)))
-                        .font(.caption)
-                }
-                Text(message.text)
-                    .font(.subheadline)
+            if message.isFromServer {
+                Image(uiImage: UIImage(named: "CLARA_cropped")!)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 28, height: 28)
+                    .clipShape(Circle())
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                message.isFromServer
-                    ? Color.white.opacity(0.2)
-                    : Color.blue.opacity(0.7)
-            )
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            Text(message.text)
+                .font(.subheadline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    message.isFromServer
+                        ? Color.white.opacity(0.2)
+                        : Color.blue.opacity(0.7)
+                )
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             if message.isFromServer { Spacer() }
         }
     }
+}
+
+#Preview {
+    LiveStreamView(
+        manager: WebRTCManager(),
+        audioTranscriber: AudioTranscriber(),
+        classifier: MedSigLIPClassifier()
+    )
 }

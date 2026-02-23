@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import UIKit
 import WebRTC
@@ -20,6 +21,7 @@ class WebRTCManager: ObservableObject {
     private static let privacyFrameInterval: TimeInterval = 5.0
     private var latestEmbedding: [Float]?
     private let careAIClient = CareAIClient()
+    private var audioPlayer: AVAudioPlayer?
 
     private static var factory: RTCPeerConnectionFactory = {
         RTCInitializeSSL()
@@ -103,6 +105,9 @@ class WebRTCManager: ObservableObject {
                     embedding: embedding, patientText: patientText, baseURL: careAIBaseURL
                 )
                 messages.append(ChatMessage(text: response.nurse_text, isFromServer: true))
+                if let b64 = response.audio_base64, let audioData = Data(base64Encoded: b64) {
+                    self.playAudio(data: audioData)
+                }
                 if let observations = response.visual_assessment?.general_observations {
                     print("[CareAI] visual: \(observations.joined(separator: ", "))")
                 }
@@ -115,6 +120,18 @@ class WebRTCManager: ObservableObject {
             } catch {
                 print("[CareAI] consult error: \(error)")
             }
+        }
+    }
+
+    // MARK: - TTS Playback
+
+    private func playAudio(data: Data) {
+        do {
+            let player = try AVAudioPlayer(data: data)
+            audioPlayer = player
+            player.play()
+        } catch {
+            print("[WebRTCManager] audio playback error: \(error)")
         }
     }
 
