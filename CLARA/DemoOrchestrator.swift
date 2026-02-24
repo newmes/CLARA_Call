@@ -24,6 +24,7 @@ final class DemoOrchestrator: ObservableObject {
 
     @Published var step: DemoStep = .idle
     @Published var currentPlayer: AVPlayer?
+    @Published var previewPlayer: AVPlayer?
     @Published var responseTimeMs: Int?
 
     var talkButtonEnabled: Bool {
@@ -52,6 +53,13 @@ final class DemoOrchestrator: ObservableObject {
         manager?.messages = []
         step = .idle
 
+        // Show first video paused immediately so camera never flashes
+        if let videoURL = Bundle.main.url(forResource: "p_reply_1", withExtension: "mp4", subdirectory: "demo_files") {
+            let player = AVPlayer(url: videoURL)
+            player.pause()
+            previewPlayer = player
+        }
+
         Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard step == .idle else { return }
@@ -64,6 +72,7 @@ final class DemoOrchestrator: ObservableObject {
         switch step {
         case .waitingForTap1:
             step = .playingVideo1
+            previewPlayer = nil
             playVideo(named: "p_reply_1") {
                 Task { @MainActor [weak self] in
                     await self?.processReply1()
@@ -99,6 +108,8 @@ final class DemoOrchestrator: ObservableObject {
         }
         currentPlayer?.pause()
         currentPlayer = nil
+        previewPlayer?.pause()
+        previewPlayer = nil
     }
 
     // MARK: - Clara Question Audio

@@ -164,6 +164,8 @@ struct LiveStreamView: View {
             Group {
                 if let player = demo.currentPlayer {
                     VideoPlayerView(player: player)
+                } else if let preview = demo.previewPlayer {
+                    VideoPlayerView(player: preview)
                 } else if cameraIsMain {
                     cameraView
                 } else {
@@ -182,7 +184,7 @@ struct LiveStreamView: View {
 
             // PiP
             Group {
-                if demo.currentPlayer != nil {
+                if demo.currentPlayer != nil || demo.previewPlayer != nil {
                     claraView
                 } else if cameraIsMain {
                     claraView
@@ -193,7 +195,7 @@ struct LiveStreamView: View {
             .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                demo.currentPlayer == nil && cameraIsMain
+                demo.currentPlayer == nil && demo.previewPlayer == nil && cameraIsMain
                     ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
                     : nil
             )
@@ -201,7 +203,7 @@ struct LiveStreamView: View {
         }
         .padding(.horizontal, 16)
         .onTapGesture {
-            guard demo.currentPlayer == nil else { return }
+            guard demo.currentPlayer == nil && demo.previewPlayer == nil else { return }
             withAnimation(.easeInOut(duration: 0.3)) {
                 cameraIsMain.toggle()
             }
