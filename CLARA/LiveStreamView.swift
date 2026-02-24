@@ -156,6 +156,24 @@ struct LiveStreamView: View {
         }
     }
 
+    private var mainPanelGlowing: Bool {
+        switch demo.step {
+        case .playingVideo1, .playingVideo2, .playingVideo3:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var pipGlowing: Bool {
+        switch demo.step {
+        case .claraAsking, .claraResponding, .claraFollowUp:
+            return true
+        default:
+            return false
+        }
+    }
+
     // MARK: - Media Panel
 
     private var mediaPanel: some View {
@@ -173,14 +191,16 @@ struct LiveStreamView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 280)
-            .offset(y: 30)
+            .frame(height: 330)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                demo.currentPlayer == nil && !cameraIsMain
-                    ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
-                    : nil
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(.green, lineWidth: mainPanelGlowing ? 2 : 0)
             )
+            .shadow(color: mainPanelGlowing ? .green.opacity(0.3 + 0.5 * demo.audioLevel) : .clear,
+                    radius: mainPanelGlowing ? 6 + 14 * demo.audioLevel : 0)
+            .animation(.easeInOut(duration: 0.15), value: demo.audioLevel)
+            .animation(.easeInOut(duration: 0.4), value: mainPanelGlowing)
 
             // PiP
             Group {
@@ -195,10 +215,13 @@ struct LiveStreamView: View {
             .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                demo.currentPlayer == nil && demo.previewPlayer == nil && cameraIsMain
-                    ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
-                    : nil
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(.green, lineWidth: pipGlowing ? 2 : 0)
             )
+            .shadow(color: pipGlowing ? .green.opacity(0.3 + 0.5 * demo.audioLevel) : .clear,
+                    radius: pipGlowing ? 4 + 12 * demo.audioLevel : 0)
+            .animation(.easeInOut(duration: 0.15), value: demo.audioLevel)
+            .animation(.easeInOut(duration: 0.4), value: pipGlowing)
             .padding(8)
         }
         .padding(.horizontal, 16)
@@ -256,7 +279,7 @@ struct LiveStreamView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 80)
+                .padding(.vertical)
             }
             .onChange(of: manager.messages.count) {
                 if let last = manager.messages.last {
@@ -270,7 +293,7 @@ struct LiveStreamView: View {
             LinearGradient(
                 stops: [
                     .init(color: .clear, location: 0),
-                    .init(color: .black, location: 0.08),
+                    .init(color: .black, location: 0.01),
                     .init(color: .black, location: 0.85),
                     .init(color: .clear, location: 1),
                 ],

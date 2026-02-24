@@ -26,6 +26,7 @@ final class DemoOrchestrator: ObservableObject {
     @Published var currentPlayer: AVPlayer?
     @Published var previewPlayer: AVPlayer?
     @Published var responseTimeMs: Int?
+    @Published var audioLevel: CGFloat = 0
 
     var talkButtonEnabled: Bool {
         step == .waitingForTap1 || step == .waitingForTap2 || step == .waitingForTap3
@@ -364,6 +365,21 @@ final class DemoOrchestrator: ObservableObject {
             audioEngine = engine
             playerNode = player
 
+            // Install tap to monitor audio levels
+            let mixer = engine.mainMixerNode
+            let tapFormat = mixer.outputFormat(forBus: 0)
+            mixer.installTap(onBus: 0, bufferSize: 1024, format: tapFormat) { [weak self] buffer, _ in
+                guard let channelData = buffer.floatChannelData?[0] else { return }
+                let frames = Int(buffer.frameLength)
+                var sum: Float = 0
+                for i in 0..<frames { sum += channelData[i] * channelData[i] }
+                let rms = sqrt(sum / Float(max(frames, 1)))
+                let level = CGFloat(min(rms * 4, 1.0))
+                Task { @MainActor [weak self] in
+                    self?.audioLevel = level
+                }
+            }
+
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { _ in
                     continuation.resume()
@@ -371,6 +387,8 @@ final class DemoOrchestrator: ObservableObject {
                 player.play()
             }
 
+            mixer.removeTap(onBus: 0)
+            audioLevel = 0
             player.stop()
             engine.stop()
         } catch {
