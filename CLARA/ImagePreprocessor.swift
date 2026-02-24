@@ -1,5 +1,6 @@
 import CoreML
 import CoreGraphics
+import UIKit
 
 enum ImagePreprocessor {
 
@@ -8,6 +9,9 @@ enum ImagePreprocessor {
     static func preprocess(_ image: CGImage) throws -> MLMultiArray {
         let width = imageSize
         let height = imageSize
+
+        // Center-crop source to square before resizing
+        let cropped = centerCropToSquare(image)
 
         guard let context = CGContext(
             data: nil,
@@ -22,7 +26,7 @@ enum ImagePreprocessor {
         }
 
         context.interpolationQuality = .high
-        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        context.draw(cropped, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         guard let data = context.data else {
             throw PreprocessorError.noPixelData
@@ -50,6 +54,31 @@ enum ImagePreprocessor {
         }
 
         return array
+    }
+
+    static func renderPreprocessed(_ image: CGImage) -> UIImage? {
+        let cropped = centerCropToSquare(image)
+        let size = imageSize
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else { return nil }
+        ctx.interpolationQuality = .high
+        ctx.draw(cropped, in: CGRect(x: 0, y: 0, width: size, height: size))
+        guard let result = ctx.makeImage() else { return nil }
+        return UIImage(cgImage: result)
+    }
+
+    private static func centerCropToSquare(_ image: CGImage) -> CGImage {
+        let w = image.width
+        let h = image.height
+        guard w != h else { return image }
+        let side = min(w, h)
+        let x = (w - side) / 2
+        let y = (h - side) / 2
+        return image.cropping(to: CGRect(x: x, y: y, width: side, height: side)) ?? image
     }
 
     enum PreprocessorError: LocalizedError {

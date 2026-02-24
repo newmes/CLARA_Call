@@ -19,6 +19,9 @@ targets:
         excludes:
           - "Resources/**"
       - path: CLARA/Resources/MedSigLIP_VisionEncoder.mlpackage
+      - path: demo_files
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: WebRTC
     info:

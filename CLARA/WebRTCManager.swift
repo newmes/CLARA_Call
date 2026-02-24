@@ -5,7 +5,7 @@ import WebRTC
 
 @MainActor
 class WebRTCManager: ObservableObject {
-    @Published var messages: [ChatMessage] = mockMessages
+    @Published var messages: [ChatMessage] = []
     @Published var localVideoTrack: RTCVideoTrack?
     @Published var isStreaming = false
 

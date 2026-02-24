@@ -1,5 +1,8 @@
+import AVFoundation
 import SwiftUI
 import WebRTC
+
+// MARK: - Video Renderer (WebRTC)
 
 struct VideoRendererView: UIViewRepresentable {
     let track: RTCVideoTrack?
@@ -31,17 +34,41 @@ struct VideoRendererView: UIViewRepresentable {
     }
 }
 
+// MARK: - Video Player (AVPlayer)
+
+struct VideoPlayerView: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> PlayerUIView { PlayerUIView() }
+
+    func updateUIView(_ uiView: PlayerUIView, context: Context) {
+        uiView.playerLayer.player = player
+    }
+
+    class PlayerUIView: UIView {
+        override class var layerClass: AnyClass { AVPlayerLayer.self }
+        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            playerLayer.videoGravity = .resizeAspectFill
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+    }
+}
+
+// MARK: - Live Stream View
+
 struct LiveStreamView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var manager: WebRTCManager
     @ObservedObject var classifier: MedSigLIPClassifier
-    @State private var isHoldingTalk = false
-    @State private var isTalkingToggled = false
-    @State private var pushToTalkMode = true
-    @State private var showTalkSettings = false
+    @StateObject private var demo = DemoOrchestrator()
     @State private var cameraIsMain = true
 
     private let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != nil
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.9).ignoresSafeArea()
@@ -58,24 +85,13 @@ struct LiveStreamView: View {
                     talkButton
 
                     HStack {
-                        Button { showTalkSettings.toggle() } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.7))
-                                .padding(10)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-                        .popover(isPresented: $showTalkSettings,
-                                 attachmentAnchor: .point(.top),
-                                 arrowEdge: .bottom) {
-                            pttToggle
-                                .padding()
-                                .presentationCompactAdaptation(.popover)
-                        }
-
                         Spacer()
 
-                        Button { manager.disconnect(); dismiss() } label: {
+                        Button {
+                            demo.cleanup()
+                            manager.disconnect()
+                            dismiss()
+                        } label: {
                             Image(systemName: "phone.down.fill")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.white)
@@ -91,13 +107,17 @@ struct LiveStreamView: View {
         .onAppear {
             guard !isPreview else { return }
             manager.startStreaming()
+            demo.manager = manager
+            demo.classifier = classifier
+            demo.start()
         }
         .onDisappear {
+            demo.cleanup()
             manager.disconnect()
         }
     }
 
-    // MARK: - Header
+    // MARK: - Subviews
 
     @ViewBuilder
     private var claraView: some View {
@@ -110,8 +130,8 @@ struct LiveStreamView: View {
     private var cameraView: some View {
         if manager.localVideoTrack != nil {
             VideoRendererView(track: manager.localVideoTrack)
-        } else if let demo = UIImage(named: "demo1") {
-            Image(uiImage: demo)
+        } else if let demoImg = UIImage(named: "demo1") {
+            Image(uiImage: demoImg)
                 .resizable()
                 .scaledToFill()
         } else {
@@ -125,28 +145,44 @@ struct LiveStreamView: View {
         }
     }
 
+    // MARK: - Media Panel
+
     private var mediaPanel: some View {
         ZStack(alignment: .bottomTrailing) {
+            // Main panel
             Group {
-                if cameraIsMain { cameraView } else { claraView }
+                if let player = demo.currentPlayer {
+                    VideoPlayerView(player: player)
+                } else if cameraIsMain {
+                    cameraView
+                } else {
+                    claraView
+                }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 280)
             .offset(y: 30)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                !cameraIsMain
+                demo.currentPlayer == nil && !cameraIsMain
                     ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
                     : nil
             )
 
+            // PiP
             Group {
-                if cameraIsMain { claraView } else { cameraView }
+                if demo.currentPlayer != nil {
+                    claraView
+                } else if cameraIsMain {
+                    claraView
+                } else {
+                    cameraView
+                }
             }
             .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                cameraIsMain
+                demo.currentPlayer == nil && cameraIsMain
                     ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
                     : nil
             )
@@ -154,71 +190,45 @@ struct LiveStreamView: View {
         }
         .padding(.horizontal, 16)
         .onTapGesture {
+            guard demo.currentPlayer == nil else { return }
             withAnimation(.easeInOut(duration: 0.3)) {
                 cameraIsMain.toggle()
             }
         }
     }
 
-    // MARK: - Push to Talk
-
-    private var isListening: Bool {
-        pushToTalkMode ? isHoldingTalk : isTalkingToggled
-    }
+    // MARK: - Talk Button
 
     private var talkButton: some View {
         HStack(spacing: 10) {
-            Image(systemName: isListening ? "mic.fill" : "mic")
+            Image(systemName: demo.isListening ? "mic.fill" : "mic")
                 .font(.title3)
-            Text(isListening ? "Listening..." : (pushToTalkMode ? "Hold to Talk" : "Tap to Talk"))
+            Text(talkButtonLabel)
                 .font(.subheadline.weight(.medium))
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 28)
         .padding(.vertical, 16)
         .background(
-            isListening ? Color.red.opacity(0.8) : Color.green,
+            demo.isListening ? Color.red.opacity(0.8) : Color.green,
             in: Capsule()
         )
         .background(.ultraThinMaterial, in: Capsule())
-        .gesture(pushToTalkMode ? holdGesture : nil)
+        .opacity(demo.talkButtonEnabled ? 1.0 : 0.5)
+        .allowsHitTesting(demo.talkButtonEnabled)
         .onTapGesture {
-            guard !pushToTalkMode else { return }
-            if isTalkingToggled {
-                isTalkingToggled = false
-                print("[Talk] end utterance (no-op)")
-            } else {
-                isTalkingToggled = true
-                print("[Talk] begin utterance (no-op)")
-            }
+            demo.handleTalkTap()
         }
     }
 
-    private var holdGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { _ in
-                if !isHoldingTalk {
-                    isHoldingTalk = true
-                    print("[Talk] begin utterance (no-op)")
-                }
-            }
-            .onEnded { _ in
-                isHoldingTalk = false
-                print("[Talk] end utterance (no-op)")
-            }
-    }
-
-    private var pttToggle: some View {
-        HStack(spacing: 6) {
-            Text("Hold")
-                .foregroundStyle(pushToTalkMode ? .white : .white.opacity(0.5))
-            Toggle("", isOn: $pushToTalkMode)
-                .labelsHidden()
-                .tint(.gray)
-            Text("Tap")
-                .foregroundStyle(!pushToTalkMode ? .white : .white.opacity(0.5))
+    private var talkButtonLabel: String {
+        switch demo.step {
+        case .playingVideo1, .playingVideo2: return "Listening..."
+        case .consulting: return "Processing..."
+        case .claraResponding: return "CLARA speaking..."
+        case .done: return "Demo Complete"
+        default: return "Tap to Talk"
         }
-        .font(.caption.weight(.medium))
     }
 
     // MARK: - Chat Overlay

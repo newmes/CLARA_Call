@@ -10,6 +10,7 @@ actor CareAIClient {
         let drug_name: String?
         let indication: String?
         let skip_tts: Bool
+        let audio_b64: String?
     }
 
     // MARK: - Response
@@ -74,7 +75,8 @@ actor CareAIClient {
     // MARK: - API
 
     func consult(
-        embedding: [Float], patientText: String, baseURL: String
+        embedding: [Float], patientText: String, baseURL: String,
+        audioBase64: String? = nil
     ) async throws -> ConsultResponse {
         guard let url = URL(string: baseURL)?
             .appendingPathComponent("v1")
@@ -85,14 +87,15 @@ actor CareAIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 90
         request.httpBody = try JSONEncoder().encode(
             ConsultRequest(
                 siglip_vector: embedding,
                 patient_text: patientText,
                 drug_name: nil,
                 indication: nil,
-                skip_tts: false
+                skip_tts: false,
+                audio_b64: audioBase64
             )
         )
 
