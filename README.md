@@ -1,12 +1,14 @@
 # CLARA
 
-**Clinical Longitudinal AI Research Assistant** — an iOS app that runs on-device medical AI models for real-time visual assessment during live patient consultations.
+**Clinical Longitudinal AI Research Assistant** — an iOS app that demonstrates AI-powered clinical consultations using on-device medical vision models and a Care AI backend.
 
 ## Features
 
 - **On-device medical image embeddings** via [MedSigLIP](https://huggingface.co/google/medsiglip-448) vision encoder (CoreML)
-- **Live camera feed** with real-time frame capture for visual analysis
-- **AI nurse consultations** powered by a Care AI backend — interprets visual findings in real time
+- **Incoming call UI** — HomeView styled as an iOS incoming video call with pulsing ring animation
+- **3-tap demo flow** — scripted patient consultation with pre-recorded video replies and AI-generated responses
+- **Audio-reactive glow** — media panel edges pulse with audio output levels during playback
+- **AI nurse consultations** powered by a Care AI backend — interprets visual findings and responds with text + TTS audio
 
 ## Requirements
 
@@ -58,25 +60,32 @@ On first launch, CoreML compiles the models for your device's Neural Engine. Thi
 ```
 CLARA/
   App.swift                    # Entry point
-  HomeView.swift               # Home screen, model loading
-  LiveStreamView.swift         # Live camera + chat UI
-  WebRTCManager.swift          # Camera capture, Care AI integration
+  HomeView.swift               # Incoming call UI, model loading
+  LiveStreamView.swift         # Media panel + chat UI
+  DemoOrchestrator.swift       # 3-tap demo state machine + audio/video playback
+  WebRTCManager.swift          # Messaging, Care AI integration
   CareAIClient.swift           # Care AI backend HTTP client
   MedSigLIPClassifier.swift    # Vision encoder loading + inference
   ImagePreprocessor.swift      # CGImage -> MLMultiArray (448x448)
   ChatMessage.swift            # Chat message model
   Resources/
     MedSigLIP_VisionEncoder.mlpackage/  # (fetched via script)
+  demo_files/
+  clara_question.wav           # CLARA's opening question audio
+  clara_answer.wav             # CLARA's follow-up audio
+  p_reply_1.mp4                # Patient reply video 1
+  p_reply_2.mp4                # Patient reply video 2
+  p_reply_3.mp4                # Patient reply video 3
 scripts/
   fetch-models.sh              # Downloads models from HF Hub
 ```
 
 ## How It Works
 
-1. **Startup** — The app loads MedSigLIP VisionEncoder onto the Neural Engine
-2. **Live session** — The camera feed is captured locally; every 5 seconds a frame is grabbed and run through the vision encoder to produce a 1152-dim medical image embedding
-3. **Consultation** — The image embedding is sent to the Care AI backend, which returns a structured nurse response with visual assessment findings and follow-up questions
-4. **Playback** — The backend response includes TTS audio that plays back through the app
+1. **Startup** — The app loads MedSigLIP VisionEncoder onto the Neural Engine. An incoming call screen is shown while loading; once ready, CLARA "calls" the user.
+2. **Accept call** — User taps Accept to enter the consultation. CLARA asks an opening question via audio while showing a paused preview of the first patient video.
+3. **3-tap demo** — Each tap plays a pre-recorded patient video reply. After the first reply, audio and a mid-frame embedding are extracted and sent to the Care AI backend, which returns a nurse response with TTS audio.
+4. **Visual feedback** — Media panel edges glow green in response to audio levels, indicating who is currently speaking (CLARA in PiP, patient in main panel).
 
 ## License
 

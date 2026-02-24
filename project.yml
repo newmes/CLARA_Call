@@ -18,8 +18,9 @@ targets:
       - path: CLARA
         excludes:
           - "Resources/**"
+          - "demo_files/**"
       - path: CLARA/Resources/MedSigLIP_VisionEncoder.mlpackage
-      - path: demo_files
+      - path: CLARA/demo_files
         type: folder
         buildPhase: resources
     dependencies:
@@ -28,8 +29,6 @@ targets:
       path: CLARA/Info.plist
       properties:
         UILaunchScreen: {}
-        NSCameraUsageDescription: "Take photos for classification"
-        NSMicrophoneUsageDescription: "Stream audio during live sessions"
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     settings:
