@@ -1,6 +1,6 @@
 # CLARA
 
-**Clinical Longitudinal AI Research Assistant** — an iOS app that demonstrates AI-powered clinical consultations using on-device medical vision models and a Care AI backend.
+**Clinical Longitudinal AI Research Assistant** — an iOS app that demonstrates AI-powered clinical consultations using on-device medical vision models and a Data Collection Agent backend.
 
 ## Features
 
@@ -8,7 +8,7 @@
 - **Incoming call UI** — HomeView styled as an iOS incoming video call with pulsing ring animation
 - **3-tap demo flow** — scripted patient consultation with pre-recorded video replies and AI-generated responses
 - **Audio-reactive glow** — media panel edges pulse with audio output levels during playback
-- **AI nurse consultations** powered by a Care AI backend — interprets visual findings and responds with text + TTS audio
+- **AI nurse consultations** powered by a Data Collection Agent backend — interprets visual findings and responds with text + TTS audio
 
 ## Requirements
 
@@ -55,9 +55,9 @@ In Xcode, go to **Edit Scheme > Run > Environment Variables** and add:
 
 | Variable | Description |
 |----------|-------------|
-| `GEMINI_API_KEY` | API key for the Gemini-powered Care AI backend |
+| `GEMINI_API_KEY` | Required for generating TTS(text-to-speech) audio file on Data Collection Agent backend server |
 
-> **Note:** If the API key has reached its daily quota, the Care AI consultation step of the demo will not be functional.
+> **Note:** If the API key has reached its daily quota, the demo will not be functional.
 
 ### 5. Build and run
 
@@ -73,8 +73,8 @@ CLARA/
   HomeView.swift               # Incoming call UI, model loading
   LiveStreamView.swift         # Media panel + chat UI
   DemoOrchestrator.swift       # 3-tap demo state machine + audio/video playback
-  WebRTCManager.swift          # Messaging, Care AI integration
-  CareAIClient.swift           # Care AI backend HTTP client
+  WebRTCManager.swift          # Messaging, Data Collection Agent integration
+  CareAIClient.swift           # Data Collection Agent backend HTTP client
   MedSigLIPClassifier.swift    # Vision encoder loading + inference
   ImagePreprocessor.swift      # CGImage -> MLMultiArray (448x448)
   ChatMessage.swift            # Chat message model
@@ -94,6 +94,6 @@ scripts/
 
 1. **Startup** — The app loads MedSigLIP VisionEncoder onto the Neural Engine. An incoming call screen is shown while loading; once ready, CLARA "calls" the user.
 2. **Accept call** — User taps Accept to enter the consultation. CLARA asks an opening question via audio while showing a paused preview of the first patient video.
-3. **3-tap demo** — Each tap plays a pre-recorded patient video reply. After the first reply, audio and a mid-frame embedding are extracted and sent to the Care AI backend, which returns a nurse response with TTS audio.
+3. **3-tap demo** — Each tap plays a pre-recorded patient video reply. After the first reply, audio and a mid-frame embedding are extracted and sent to the Data Collection Agent backend, which returns a nurse response with TTS audio.
 4. **Visual feedback** — Media panel edges glow green in response to audio levels, indicating who is currently speaking (CLARA in PiP, patient in main panel).
 
