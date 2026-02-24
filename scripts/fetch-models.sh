@@ -5,7 +5,6 @@ REPO="JacobNewmes/CLARA-CoreML"
 DEST="$(cd "$(dirname "$0")/.." && pwd)/CLARA/Resources"
 
 models=(
-    "MedASR.mlpackage"
     "MedSigLIP_VisionEncoder.mlpackage"
 )
 

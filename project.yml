@@ -19,10 +19,6 @@ targets:
         excludes:
           - "Resources/**"
       - path: CLARA/Resources/MedSigLIP_VisionEncoder.mlpackage
-      - path: CLARA/Resources/MedASR.mlpackage
-      - path: CLARA/Resources/medasr_tokenizer
-        type: folder
-        buildPhase: resources
     dependencies:
       - package: WebRTC
     info:

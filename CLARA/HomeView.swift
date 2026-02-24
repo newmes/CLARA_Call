@@ -2,19 +2,15 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var manager = WebRTCManager()
-    @StateObject private var audioTranscriber = AudioTranscriber()
     @StateObject private var classifier = MedSigLIPClassifier()
     @State private var showLiveStream = false
 
     private var isLoading: Bool {
-        classifier.isLoading || audioTranscriber.state != .ready
+        classifier.isLoading
     }
 
     private var loadingStatus: String {
-        var pending: [String] = []
-        if classifier.isLoading { pending.append("vision model") }
-        if audioTranscriber.state != .ready { pending.append("speech model") }
-        return "Loading \(pending.joined(separator: " & "))…"
+        "Loading vision model…"
     }
 
     var body: some View {
@@ -23,7 +19,7 @@ struct HomeView: View {
 
             VStack {
                 Spacer()
-                
+
                 Image(uiImage: UIImage(named: "CLARA_new") ?? UIImage())
                     .resizable()
                     .scaledToFit()
@@ -33,7 +29,7 @@ struct HomeView: View {
                 Text("CLARA")
                     .font(.system(size: 48, weight: .bold))
                     .foregroundStyle(.white)
-                
+
                 Text("Clinical Longitudinal AI Research Assistant")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.6))
@@ -65,14 +61,11 @@ struct HomeView: View {
             }
         }
         .task {
-            async let a: () = audioTranscriber.loadModel()
-            async let b: () = classifier.load()
-            _ = await (a, b)
+            await classifier.load()
             manager.setClassifier(classifier)
         }
         .fullScreenCover(isPresented: $showLiveStream) {
-            LiveStreamView(manager: manager, audioTranscriber: audioTranscriber, classifier: classifier)
+            LiveStreamView(manager: manager, classifier: classifier)
         }
     }
 }
-

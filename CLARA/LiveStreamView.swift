@@ -34,7 +34,6 @@ struct VideoRendererView: UIViewRepresentable {
 struct LiveStreamView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var manager: WebRTCManager
-    @ObservedObject var audioTranscriber: AudioTranscriber
     @ObservedObject var classifier: MedSigLIPClassifier
     @State private var isHoldingTalk = false
     @State private var isTalkingToggled = false
@@ -92,15 +91,8 @@ struct LiveStreamView: View {
         .onAppear {
             guard !isPreview else { return }
             manager.startStreaming()
-            audioTranscriber.startListening()
-            audioTranscriber.onTranscription = { [weak manager] text, audioData in
-                guard let manager else { return }
-                manager.messages.append(ChatMessage(text: text, isFromServer: false, audioData: audioData))
-                manager.consultCareAI(patientText: text)
-            }
         }
         .onDisappear {
-            audioTranscriber.stopTranscribing()
             manager.disconnect()
         }
     }
@@ -194,10 +186,10 @@ struct LiveStreamView: View {
             guard !pushToTalkMode else { return }
             if isTalkingToggled {
                 isTalkingToggled = false
-                audioTranscriber.endUtteranceAndTranscribe()
+                print("[Talk] end utterance (no-op)")
             } else {
                 isTalkingToggled = true
-                audioTranscriber.beginUtterance()
+                print("[Talk] begin utterance (no-op)")
             }
         }
     }
@@ -207,12 +199,12 @@ struct LiveStreamView: View {
             .onChanged { _ in
                 if !isHoldingTalk {
                     isHoldingTalk = true
-                    audioTranscriber.beginUtterance()
+                    print("[Talk] begin utterance (no-op)")
                 }
             }
             .onEnded { _ in
                 isHoldingTalk = false
-                audioTranscriber.endUtteranceAndTranscribe()
+                print("[Talk] end utterance (no-op)")
             }
     }
 
@@ -281,7 +273,6 @@ struct LiveStreamView: View {
 #Preview {
     LiveStreamView(
         manager: WebRTCManager(),
-        audioTranscriber: AudioTranscriber(),
         classifier: MedSigLIPClassifier()
     )
 }
