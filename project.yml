@@ -23,10 +23,6 @@ targets:
       - path: CLARA/Resources/medasr_tokenizer
         type: folder
         buildPhase: resources
-      - path: CLARA_Image.png
-        buildPhase: resources
-      - path: CLARA_cropped.png
-        buildPhase: resources
     dependencies:
       - package: WebRTC
     info:

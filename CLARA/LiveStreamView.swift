@@ -40,6 +40,9 @@ struct LiveStreamView: View {
     @State private var isTalkingToggled = false
     @State private var pushToTalkMode = true
     @State private var showTalkSettings = false
+    @State private var controlBarHeight: CGFloat = 0
+
+    private let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != nil
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -47,7 +50,12 @@ struct LiveStreamView: View {
             VStack(spacing: 12) {
                 Spacer()
                 controlBar
+                claraAvatar
                 chatOverlay
+            }
+
+            VStack {
+                Spacer()
                 ZStack {
                     talkButton
 
@@ -74,6 +82,7 @@ struct LiveStreamView: View {
             }
         }
         .onAppear {
+            guard !isPreview else { return }
             manager.startStreaming()
             audioTranscriber.startListening()
             audioTranscriber.onTranscription = { [weak manager] text, audioData in
@@ -88,15 +97,53 @@ struct LiveStreamView: View {
         }
     }
 
+    // MARK: - CLARA Avatar
+
+    private var claraAvatar: some View {
+        Image(uiImage: UIImage(named: "CLARA_new") ?? UIImage())
+            .resizable()
+            .scaledToFill()
+            .offset(y: 20)
+            .frame(maxWidth: .infinity)
+            .frame(height: 300)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(.green, lineWidth: 2)
+            )
+            .padding(.horizontal, 16)
+    }
+
     // MARK: - Control Bar
 
     private var controlBar: some View {
         HStack(spacing: 16) {
-            VideoRendererView(track: manager.localVideoTrack)
-                .frame(width: 120, height: 120)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            ZStack {
+                if manager.localVideoTrack != nil && !isPreview {
+                    VideoRendererView(track: manager.localVideoTrack)
+                } else if let demo = UIImage(named: "demo1") {
+                    Image(uiImage: demo)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.quaternary)
+                        .overlay {
+                            Image(systemName: "video.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                }
+            }
+            .frame(width: 120, height: 120)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(spacing: 10) {
+                Text("CLARA")
+                    .font(.title.weight(.heavy))
+                    .foregroundStyle(.white.opacity(0.8))
+                
                 Text("Privacy Mode enabled")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.white.opacity(0.6))
@@ -115,6 +162,11 @@ struct LiveStreamView: View {
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 16)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height
+        } action: { height in
+            controlBarHeight = height
+        }
     }
 
     // MARK: - Push to Talk
@@ -184,12 +236,13 @@ struct LiveStreamView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(manager.messages) { message in
+                    ForEach(manager.messages.filter(\.isFromServer)) { message in
                         chatBubble(message)
                             .id(message.id)
                     }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 80)
             }
             .onChange(of: manager.messages.count) {
                 if let last = manager.messages.last {
@@ -199,43 +252,29 @@ struct LiveStreamView: View {
                 }
             }
         }
-        .padding(.vertical, 16)
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.08),
+                    .init(color: .black, location: 0.85),
+                    .init(color: .clear, location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
 
     private func chatBubble(_ message: ChatMessage) -> some View {
         HStack(alignment: .bottom, spacing: 8) {
-            if !message.isFromServer { Spacer() }
-            if message.isFromServer {
-                Image(uiImage: UIImage(named: "CLARA_cropped")!)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 28, height: 28)
-                    .clipShape(Circle())
-            }
-            HStack(spacing: 6) {
-                Text(message.text)
-                    .font(.subheadline)
-                if message.audioData != nil {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.6))
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                message.isFromServer
-                    ? Color.white.opacity(0.2)
-                    : Color.blue.opacity(0.7)
-            )
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .onTapGesture {
-                if let audio = message.audioData {
-                    manager.playAudio(data: audio)
-                }
-            }
-            if message.isFromServer { Spacer() }
+            Text(message.text)
+                .font(.subheadline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.2))
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 }

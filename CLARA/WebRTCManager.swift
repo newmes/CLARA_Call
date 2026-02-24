@@ -5,7 +5,7 @@ import WebRTC
 
 @MainActor
 class WebRTCManager: ObservableObject {
-    @Published var messages: [ChatMessage] = []
+    @Published var messages: [ChatMessage] = mockMessages
     @Published var localVideoTrack: RTCVideoTrack?
     @Published var isStreaming = false
 
@@ -36,6 +36,21 @@ class WebRTCManager: ObservableObject {
 
     private var videoSource: RTCVideoSource?
     private var videoCapturer: RTCCameraVideoCapturer?
+
+    // MARK: - Mock Data
+
+    #if DEBUG
+    private static let mockMessages: [ChatMessage] = [
+        ChatMessage(text: "I've been having this rash on my arm for about three days now. It's red and a bit itchy.", isFromServer: false),
+        ChatMessage(text: "I can see the area you're describing. It appears to be an erythematous, mildly raised rash on your left forearm. Can you tell me — has it been spreading, or has it stayed roughly the same size since you first noticed it?", isFromServer: true),
+        ChatMessage(text: "It's gotten a little bigger. I also feel kind of tired lately.", isFromServer: false),
+        ChatMessage(text: "Thank you for letting me know. The gradual spread along with fatigue could suggest a few things. Have you started any new medications, changed detergents or soaps recently, or been in contact with any plants or animals that are new to you?", isFromServer: true),
+        ChatMessage(text: "Now that you mention it, I started a new antibiotic last week for a sinus infection.", isFromServer: false),
+        ChatMessage(text: "That's very helpful context. Drug-related skin reactions can appear days after starting a new medication, which fits your timeline. I'd recommend you contact your prescribing physician to discuss the rash — they may want to switch your antibiotic. In the meantime, avoid scratching the area and apply a cool compress if the itching is bothersome.", isFromServer: true),
+    ]
+    #else
+    private static let mockMessages: [ChatMessage] = []
+    #endif
 
     // MARK: - Preview
 

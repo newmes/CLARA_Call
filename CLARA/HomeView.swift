@@ -24,7 +24,7 @@ struct HomeView: View {
             VStack {
                 Spacer()
                 
-                Image(uiImage: UIImage(named: "CLARA_Image")!)
+                Image(uiImage: UIImage(named: "CLARA_new") ?? UIImage())
                     .resizable()
                     .scaledToFit()
                     .frame(height: 170)
