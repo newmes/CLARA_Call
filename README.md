@@ -5,9 +5,6 @@
 ## Features
 
 - **On-device medical image embeddings** via [MedSigLIP](https://huggingface.co/google/medsiglip-448) vision encoder (CoreML)
-- **Incoming call UI** — HomeView styled as an iOS incoming video call with pulsing ring animation
-- **3-tap demo flow** — scripted patient consultation with pre-recorded video replies and AI-generated responses
-- **Audio-reactive glow** — media panel edges pulse with audio output levels during playback
 - **AI nurse consultations** powered by a Data Collection Agent backend — interprets visual findings and responds with text + TTS audio
 
 ## Requirements
@@ -93,7 +90,6 @@ scripts/
 ## How It Works
 
 1. **Startup** — The app loads MedSigLIP VisionEncoder onto the Neural Engine. An incoming call screen is shown while loading; once ready, CLARA "calls" the user.
-2. **Accept call** — User taps Accept to enter the consultation. CLARA asks an opening question via audio while showing a paused preview of the first patient video.
+2. **Accept call** — User taps Accept to enter the consultation. CLARA asks an opening question via audio.
 3. **3-tap demo** — Each tap plays a pre-recorded patient video reply. After the first reply, audio and a mid-frame embedding are extracted and sent to the Data Collection Agent backend, which returns a nurse response with TTS audio.
-4. **Visual feedback** — Media panel edges glow green in response to audio levels, indicating who is currently speaking (CLARA in PiP, patient in main panel).
 
