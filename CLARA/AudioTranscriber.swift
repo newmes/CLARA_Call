@@ -109,6 +109,10 @@ final class AudioTranscriber: ObservableObject {
     // MARK: - Audio Engine
 
     private func startAudioEngine() {
+        #if targetEnvironment(simulator)
+        print("[AudioTranscriber] skipping audio engine on simulator")
+        return
+        #else
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
         let hwFormat = inputNode.outputFormat(forBus: 0)
@@ -171,6 +175,7 @@ final class AudioTranscriber: ObservableObject {
         } catch {
             print("[AudioTranscriber] engine start error: \(error)")
         }
+        #endif
     }
 
     // MARK: - Inference Loop

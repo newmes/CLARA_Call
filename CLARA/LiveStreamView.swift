@@ -40,17 +40,16 @@ struct LiveStreamView: View {
     @State private var isTalkingToggled = false
     @State private var pushToTalkMode = true
     @State private var showTalkSettings = false
-    @State private var controlBarHeight: CGFloat = 0
+    @State private var cameraIsMain = true
 
     private let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != nil
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.black.opacity(0.9).ignoresSafeArea()
 
             VStack(spacing: 12) {
                 Spacer()
-                controlBar
-                claraAvatar
+                mediaPanel
                 chatOverlay
             }
 
@@ -60,7 +59,6 @@ struct LiveStreamView: View {
                     talkButton
 
                     HStack {
-                        Spacer()
                         Button { showTalkSettings.toggle() } label: {
                             Image(systemName: "gearshape.fill")
                                 .font(.subheadline)
@@ -74,6 +72,16 @@ struct LiveStreamView: View {
                             pttToggle
                                 .padding()
                                 .presentationCompactAdaptation(.popover)
+                        }
+
+                        Spacer()
+
+                        Button { manager.disconnect(); dismiss() } label: {
+                            Image(systemName: "phone.down.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(10)
+                                .background(Color.red, in: Circle())
                         }
                     }
                 }
@@ -97,75 +105,66 @@ struct LiveStreamView: View {
         }
     }
 
-    // MARK: - CLARA Avatar
+    // MARK: - Header
 
-    private var claraAvatar: some View {
+    @ViewBuilder
+    private var claraView: some View {
         Image(uiImage: UIImage(named: "CLARA_new") ?? UIImage())
             .resizable()
             .scaledToFill()
-            .offset(y: 20)
-            .frame(maxWidth: .infinity)
-            .frame(height: 300)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(.green, lineWidth: 2)
-            )
-            .padding(.horizontal, 16)
     }
 
-    // MARK: - Control Bar
-
-    private var controlBar: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                if manager.localVideoTrack != nil && !isPreview {
-                    VideoRendererView(track: manager.localVideoTrack)
-                } else if let demo = UIImage(named: "demo1") {
-                    Image(uiImage: demo)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.quaternary)
-                        .overlay {
-                            Image(systemName: "video.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white.opacity(0.4))
-                        }
+    @ViewBuilder
+    private var cameraView: some View {
+        if manager.localVideoTrack != nil {
+            VideoRendererView(track: manager.localVideoTrack)
+        } else if let demo = UIImage(named: "demo1") {
+            Image(uiImage: demo)
+                .resizable()
+                .scaledToFill()
+        } else {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.quaternary)
+                .overlay {
+                    Image(systemName: "video.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white.opacity(0.4))
                 }
-            }
-            .frame(width: 120, height: 120)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
 
-            VStack(spacing: 10) {
-                Text("CLARA")
-                    .font(.title.weight(.heavy))
-                    .foregroundStyle(.white.opacity(0.8))
-                
-                Text("Privacy Mode enabled")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.6))
-
-                Button { manager.disconnect(); dismiss() } label: {
-                    Text("Hang Up")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .background(Color.red, in: Capsule())
-                }
+    private var mediaPanel: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if cameraIsMain { cameraView } else { claraView }
             }
             .frame(maxWidth: .infinity)
+            .frame(height: 280)
+            .offset(y: 30)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                !cameraIsMain
+                    ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
+                    : nil
+            )
+
+            Group {
+                if cameraIsMain { claraView } else { cameraView }
+            }
+            .frame(width: 100, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                cameraIsMain
+                    ? RoundedRectangle(cornerRadius: 12).strokeBorder(.green, lineWidth: 2)
+                    : nil
+            )
+            .padding(8)
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 16)
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.height
-        } action: { height in
-            controlBarHeight = height
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                cameraIsMain.toggle()
+            }
         }
     }
 
