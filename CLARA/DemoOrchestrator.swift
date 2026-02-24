@@ -16,18 +16,22 @@ final class DemoOrchestrator: ObservableObject {
         case claraResponding
         case waitingForTap2
         case playingVideo2
+        case claraFollowUp
+        case waitingForTap3
+        case playingVideo3
         case done
     }
 
     @Published var step: DemoStep = .idle
     @Published var currentPlayer: AVPlayer?
+    @Published var responseTimeMs: Int?
 
     var talkButtonEnabled: Bool {
-        step == .waitingForTap1 || step == .waitingForTap2
+        step == .waitingForTap1 || step == .waitingForTap2 || step == .waitingForTap3
     }
 
     var isListening: Bool {
-        step == .playingVideo1 || step == .playingVideo2
+        step == .playingVideo1 || step == .playingVideo2 || step == .playingVideo3
     }
 
     // MARK: - Dependencies
@@ -69,6 +73,13 @@ final class DemoOrchestrator: ObservableObject {
             step = .playingVideo2
             playVideo(named: "p_reply_2") { [weak self] in
                 Task { @MainActor in
+                    await self?.playClaraFollowUp()
+                }
+            }
+        case .waitingForTap3:
+            step = .playingVideo3
+            playVideo(named: "p_reply_3") { [weak self] in
+                Task { @MainActor in
                     self?.step = .done
                 }
             }
@@ -100,11 +111,30 @@ final class DemoOrchestrator: ObservableObject {
         }
 
         manager?.messages.append(
-            ChatMessage(text: "How have you been feeling since your last treatment? Any new symptoms or changes you've noticed?", isFromServer: true)
+            ChatMessage(text: "Have you noticed any new skin changes or rashes since yesterday? Could you show me?", isFromServer: true)
         )
 
         await playAudioFile(url: url)
         step = .waitingForTap1
+    }
+
+    // MARK: - Clara Follow-Up Audio
+
+    private func playClaraFollowUp() async {
+        step = .claraFollowUp
+
+        manager?.messages.append(
+            ChatMessage(text: "I will flag this for review by the medical team.", isFromServer: true)
+        )
+
+        guard let url = Bundle.main.url(forResource: "clara_answer", withExtension: "wav", subdirectory: "demo_files") else {
+            print("[Demo] clara_answer.wav not found in bundle")
+            step = .waitingForTap3
+            return
+        }
+
+        await playAudioFile(url: url)
+        step = .waitingForTap3
     }
 
     // MARK: - Video Playback
@@ -165,12 +195,15 @@ final class DemoOrchestrator: ObservableObject {
 
         // POST to server
         do {
+            let t0 = CFAbsoluteTimeGetCurrent()
             let response = try await careAIClient.consult(
                 embedding: embedding,
                 patientText: "",
                 baseURL: manager.careAIBaseURL,
                 audioBase64: audioB64
             )
+            let elapsed = CFAbsoluteTimeGetCurrent() - t0
+            responseTimeMs = Int(elapsed * 1000)
 
             let serverAudio = response.audio_base64.flatMap { Data(base64Encoded: $0) }
             manager.messages.append(

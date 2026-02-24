@@ -81,6 +81,17 @@ struct LiveStreamView: View {
 
             VStack {
                 Spacer()
+
+                if let ms = demo.responseTimeMs {
+                    Text("API: \(String(format: "%.1f", Double(ms) / 1000))s")
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.white.opacity(0.8))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.black.opacity(0.5), in: Capsule())
+                        .padding(.bottom, 4)
+                }
+
                 ZStack {
                     talkButton
 
@@ -223,9 +234,9 @@ struct LiveStreamView: View {
 
     private var talkButtonLabel: String {
         switch demo.step {
-        case .playingVideo1, .playingVideo2: return "Listening..."
+        case .playingVideo1, .playingVideo2, .playingVideo3: return "Listening..."
         case .consulting: return "Processing..."
-        case .claraResponding: return "CLARA speaking..."
+        case .claraResponding, .claraFollowUp: return "CLARA speaking..."
         case .done: return "Demo Complete"
         default: return "Tap to Talk"
         }
