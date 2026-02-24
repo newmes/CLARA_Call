@@ -20,8 +20,8 @@
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/JacobNewmes/CLARA.git
-cd CLARA
+git clone https://github.com/JacobNewmes/CLARA_iOS.git
+cd CLARA_iOS
 ```
 
 ### 2. Fetch CoreML models
@@ -48,7 +48,7 @@ open CLARA.xcodeproj
 
 ### 4. Configure environment variables
 
-In Xcode, go to **Edit Scheme > Run > Environment Variables** and add:
+In Xcode, go to **Product > Scheme > Edit Sceme > Run > Environment Variables** and add:
 
 | Variable | Description |
 |----------|-------------|
