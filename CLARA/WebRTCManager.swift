@@ -10,7 +10,7 @@ class WebRTCManager: ObservableObject {
     @Published var isStreaming = false
 
     var classifier: MedSigLIPClassifier?
-    var careAIBaseURL = "https://imperceptible-makena-overabusively.ngrok-free.dev"
+    var careAIBaseURL = "https://winkingly-contactual-charley.ngrok-free.dev"
 
     func setClassifier(_ classifier: MedSigLIPClassifier) {
         self.classifier = classifier

@@ -11,6 +11,7 @@ actor CareAIClient {
         let indication: String?
         let skip_tts: Bool
         let audio_b64: String?
+        let api_key: String?
     }
 
     // MARK: - Response
@@ -88,6 +89,7 @@ actor CareAIClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 90
+        let apiKey = ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
         request.httpBody = try JSONEncoder().encode(
             ConsultRequest(
                 siglip_vector: embedding,
@@ -95,7 +97,8 @@ actor CareAIClient {
                 drug_name: nil,
                 indication: nil,
                 skip_tts: false,
-                audio_b64: audioBase64
+                audio_b64: audioBase64,
+                api_key: apiKey
             )
         )
 

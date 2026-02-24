@@ -49,7 +49,17 @@ xcodegen generate
 open CLARA.xcodeproj
 ```
 
-### 4. Build and run
+### 4. Configure environment variables
+
+In Xcode, go to **Edit Scheme > Run > Environment Variables** and add:
+
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | API key for the Gemini-powered Care AI backend |
+
+> **Note:** If the API key has reached its daily quota, the Care AI consultation step of the demo will not be functional.
+
+### 5. Build and run
 
 Select a physical iOS device (CoreML models require Neural Engine — Simulator won't work well) and hit **Cmd+R**.
 
