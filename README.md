@@ -61,30 +61,6 @@ In Xcode, go to **Signing & Capabilities** and select your development team to s
 
 On first launch, CoreML compiles the models for your device's Neural Engine. This takes about 20 seconds (on iPhone 15 Pro) and is cached for subsequent runs.
 
-## Project Structure
-
-```
-CLARA/
-  App.swift                    # Entry point
-  HomeView.swift               # Incoming call UI, model loading
-  LiveStreamView.swift         # Media panel + chat UI
-  DemoOrchestrator.swift       # 3-tap demo state machine + audio/video playback
-  WebRTCManager.swift          # Messaging, Data Collection Agent integration
-  CareAIClient.swift           # Data Collection Agent backend HTTP client
-  MedSigLIPClassifier.swift    # Vision encoder loading + inference
-  ImagePreprocessor.swift      # CGImage -> MLMultiArray (448x448)
-  ChatMessage.swift            # Chat message model
-  Resources/
-    MedSigLIP_VisionEncoder.mlpackage/  # (fetched via script)
-  demo_files/
-  clara_question.wav           # CLARA's opening question audio
-  clara_answer.wav             # CLARA's follow-up audio
-  p_reply_1.mp4                # Patient reply video 1
-  p_reply_2.mp4                # Patient reply video 2
-  p_reply_3.mp4                # Patient reply video 3
-scripts/
-  fetch-models.sh              # Downloads models from HF Hub
-```
 
 ## How It Works
 
