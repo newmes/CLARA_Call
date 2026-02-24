@@ -25,7 +25,6 @@ final class DemoOrchestrator: ObservableObject {
     @Published var step: DemoStep = .idle
     @Published var currentPlayer: AVPlayer?
     @Published var previewPlayer: AVPlayer?
-    @Published var responseTimeMs: Int?
     @Published var audioLevel: CGFloat = 0
 
     var talkButtonEnabled: Bool {
@@ -228,15 +227,12 @@ final class DemoOrchestrator: ObservableObject {
 
         // POST to server
         do {
-            let t0 = CFAbsoluteTimeGetCurrent()
             let response = try await careAIClient.consult(
                 embedding: embedding,
                 patientText: "",
                 baseURL: manager.careAIBaseURL,
                 audioBase64: audioB64
             )
-            let elapsed = CFAbsoluteTimeGetCurrent() - t0
-            responseTimeMs = Int(elapsed * 1000)
 
             let serverAudio = response.audio_base64.flatMap { Data(base64Encoded: $0) }
             manager.messages.append(

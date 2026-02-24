@@ -82,16 +82,6 @@ struct LiveStreamView: View {
             VStack {
                 Spacer()
 
-                if let ms = demo.responseTimeMs {
-                    Text("API: \(String(format: "%.1f", Double(ms) / 1000))s")
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.black.opacity(0.5), in: Capsule())
-                        .padding(.bottom, 4)
-                }
-
                 ZStack {
                     talkButton
 
