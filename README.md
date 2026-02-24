@@ -16,7 +16,7 @@
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 - iOS 18.0+ deployment target
 - Python 3 with `huggingface_hub` installed (`pip install huggingface_hub`)
-- ~815 MB disk space for CoreML models
+- ~815 MB disk space for CoreML model
 
 ## Getting Started
 
@@ -53,7 +53,7 @@ open CLARA.xcodeproj
 
 Select a physical iOS device (CoreML models require Neural Engine — Simulator won't work well) and hit **Cmd+R**.
 
-On first launch, CoreML compiles the models for your device's Neural Engine. This takes 30-40 seconds and is cached for subsequent runs.
+On first launch, CoreML compiles the models for your device's Neural Engine. This takes about 20 seconds (on iPhone 15 Pro) and is cached for subsequent runs.
 
 ## Project Structure
 
@@ -87,6 +87,3 @@ scripts/
 3. **3-tap demo** — Each tap plays a pre-recorded patient video reply. After the first reply, audio and a mid-frame embedding are extracted and sent to the Care AI backend, which returns a nurse response with TTS audio.
 4. **Visual feedback** — Media panel edges glow green in response to audio levels, indicating who is currently speaking (CLARA in PiP, patient in main panel).
 
-## License
-
-All rights reserved.
