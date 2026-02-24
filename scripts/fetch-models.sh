@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="JacobNewmes/CLARA-CoreML"
+REPO="JacobNewmes/coreml-medsiglip-448"
 DEST="$(cd "$(dirname "$0")/.." && pwd)/CLARA/Resources"
 
 models=(

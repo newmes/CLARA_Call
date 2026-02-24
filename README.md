@@ -3,7 +3,7 @@ An iOS app that demonstrates AI-powered clinical consultations using on-device m
 
 ## Features
 
-- **On-device medical image embeddings** via [MedSigLIP](https://huggingface.co/google/medsiglip-448) vision encoder (CoreML)
+- **On-device medical image embeddings** via [MedSigLIP](https://huggingface.co/google/medsiglip-448) vision encoder converted to [CoreML](https://huggingface.co/JacobNewmes/coreml-medsiglip-448) — 448x448 input, 1152-dim embedding output, runs on CPU + Neural Engine
 - **AI nurse consultations** powered by a Data Collection Agent backend — interprets visual findings and responds with text + TTS audio
 
 ## Requirements
@@ -25,7 +25,7 @@ cd CLARA_Call
 
 ### 2. Fetch CoreML models
 
-The models are hosted on [Hugging Face Hub](https://huggingface.co/JacobNewmes/CLARA-CoreML) and are not checked into git. Run the fetch script to download them:
+The models are hosted on [Hugging Face Hub](https://huggingface.co/JacobNewmes/coreml-medsiglip-448) and are not checked into git. Run the fetch script to download them:
 
 ```bash
 ./scripts/fetch-models.sh
