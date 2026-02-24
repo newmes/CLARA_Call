@@ -1,6 +1,5 @@
-# CLARA
-
-**Clinical Longitudinal AI Research Assistant** — an iOS app that demonstrates AI-powered clinical consultations using on-device medical vision models and a Data Collection Agent backend.
+# CLARA_Call
+An iOS app that demonstrates AI-powered clinical consultations using on-device medical vision models and a Data Collection Agent backend.
 
 ## Features
 
@@ -20,8 +19,8 @@
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/JacobNewmes/CLARA_iOS.git
-cd CLARA_iOS
+git clone https://github.com/JacobNewmes/CLARA_Call.git
+cd CLARA_Call
 ```
 
 ### 2. Fetch CoreML models
