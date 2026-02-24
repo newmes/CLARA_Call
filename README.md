@@ -58,7 +58,7 @@ In Xcode, go to **Product > Scheme > Edit Sceme > Run > Environment Variables** 
 
 ### 5. Build and run
 
-Select a physical iOS device (CoreML models require Neural Engine — Simulator won't work well) and hit **Cmd+R**.
+In Xcode, go to **Signing & Capabilities** and select your development team to sign the provisioning profile. Then select a physical iOS device (CoreML models require Neural Engine — Simulator won't work well) and hit **Cmd+R**.
 
 On first launch, CoreML compiles the models for your device's Neural Engine. This takes about 20 seconds (on iPhone 15 Pro) and is cached for subsequent runs.
 
