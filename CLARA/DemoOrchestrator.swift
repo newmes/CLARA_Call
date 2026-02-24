@@ -53,6 +53,7 @@ final class DemoOrchestrator: ObservableObject {
     func start() {
         manager?.messages = []
         step = .idle
+        configureAudioSession()
 
         // Show first video paused immediately so camera never flashes
         if let videoURL = Bundle.main.url(forResource: "p_reply_1", withExtension: "mp4", subdirectory: "demo_files") {
@@ -111,6 +112,26 @@ final class DemoOrchestrator: ObservableObject {
         currentPlayer = nil
         previewPlayer?.pause()
         previewPlayer = nil
+
+        let session = RTCAudioSession.sharedInstance()
+        session.lockForConfiguration()
+        try? session.setActive(false)
+        session.unlockForConfiguration()
+    }
+
+    // MARK: - Audio Session
+
+    private func configureAudioSession() {
+        let session = RTCAudioSession.sharedInstance()
+        session.lockForConfiguration()
+        do {
+            try session.setCategory(AVAudioSession.Category.playback, with: [])
+            try session.setMode(AVAudioSession.Mode.default)
+            try session.setActive(true)
+        } catch {
+            print("[Demo] audio session error: \(error)")
+        }
+        session.unlockForConfiguration()
     }
 
     // MARK: - Clara Question Audio
@@ -339,12 +360,6 @@ final class DemoOrchestrator: ObservableObject {
         audioEngine?.stop()
         audioEngine = nil
         playerNode = nil
-
-        // Re-apply speaker override
-        let session = RTCAudioSession.sharedInstance()
-        session.lockForConfiguration()
-        try? session.overrideOutputAudioPort(.speaker)
-        session.unlockForConfiguration()
 
         do {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("demo_playback.wav")

@@ -117,14 +117,12 @@ struct LiveStreamView: View {
         }
         .onAppear {
             guard !isPreview else { return }
-            manager.startStreaming()
             demo.manager = manager
             demo.classifier = classifier
             demo.start()
         }
         .onDisappear {
             demo.cleanup()
-            manager.disconnect()
         }
     }
 

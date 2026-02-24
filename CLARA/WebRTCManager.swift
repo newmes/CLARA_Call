@@ -195,9 +195,9 @@ class WebRTCManager: ObservableObject {
         do {
             try audioSession.setCategory(
                 AVAudioSession.Category.playAndRecord,
-                with: [.defaultToSpeaker, .allowBluetoothHFP]
+                with: [.defaultToSpeaker]
             )
-            try audioSession.setMode(AVAudioSession.Mode.voiceChat)
+            try audioSession.setMode(AVAudioSession.Mode.default)
             try audioSession.overrideOutputAudioPort(.speaker)
             try audioSession.setActive(true)
         } catch {
